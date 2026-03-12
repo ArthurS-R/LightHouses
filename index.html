@@ -11,6 +11,29 @@
         body { font-family: 'DIN Pro', Arial, sans-serif; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
+        #mapTitle {
+            position: fixed;
+            top: 36%;
+            left: 30%;
+            transform: translateX(-50%) translateY(-50%);
+            z-index: 45;
+            color: #000;
+            font-size: 72px;
+            font-family: 'DIN Pro', Arial, sans-serif;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-shadow: none;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 220ms ease, transform 220ms ease;
+        }
+
+        #mapTitle.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         #overlay {
             position: fixed;
             top: 0;
@@ -33,18 +56,27 @@
         #overlayStage {
             position: fixed;
             top: 0;
-            left: 0;
-            width: 100%;
+            right: 0;
+            left: auto;
+            width: 50vw;
             height: 100%;
+            box-sizing: border-box;
+            background: transparent;
         }
 
         #overlayImage {
             position: absolute;
-            max-width: calc(100vw - 200px);
-            max-height: calc(100vh - 200px);
+            top: 50%;
+            left: 50%;
+            width: calc(100% - 24px);
+            max-height: calc(100% - 24px);
             object-fit: contain;
-            object-position: top left;
+            object-position: center center;
+            transform: translate(-50%, -50%);
             display: block;
+            border: none;
+            background: transparent;
+            box-sizing: border-box;
         }
 
         #textBox {
@@ -53,16 +85,41 @@
             bottom: 70px;
             color: #000;
             background: #fff;
-            padding: 14px;
+            padding: 24px 14px 14px 14px;
             border-radius: 0;
             font-size: 14px;
             line-height: 1.4;
             text-align: left;
             max-width: 42vw;
             max-height: calc(100vh - 70px - 8px);
-            overflow: auto;
+            overflow: visible;
             z-index: 40;
             box-shadow: none;
+        }
+
+        #textBox .light-circle {
+            position: absolute;
+            top: -26px;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #000;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        #textBox .light-circle.on {
+    
+            transform: translate(-50%, -50%) scale(1.25);
+        }
+
+        #textBox .light-circle.off {
+        
+            transform: translate(-50%, -50%) scale(1);
+            background: #ccc;
         }
 
         #textBox > div {
@@ -121,16 +178,42 @@
         #closeOverlay {
             position: fixed;
             top: 12px;
-            left: 12px;
+            right: 12px;
+            left: auto;
             border: 0;
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: rgba(0, 0, 0, 0.55);
+            background: #000;
             color: #fff;
             font-size: 20px;
+            font-weight: 700;
             cursor: pointer;
             z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 140ms ease, background 120ms ease;
+        }
+
+        @keyframes closeOverlayCross {
+            0% { transform: scale(1.2) rotate(0deg); }
+            25% { transform: scale(1.2) rotate(45deg); }
+            50% { transform: scale(1.2) rotate(90deg); }
+            75% { transform: scale(1.2) rotate(135deg); }
+            100% { transform: scale(1.2) rotate(180deg); }
+        }
+
+        #closeOverlay:hover {
+            transform: scale(1.2);
+            background: rgba(0, 0, 0, 0.85);
+            animation: closeOverlayCross 0.4s ease forwards;
+        }
+
+        #closeOverlay:active {
+            transform: scale(1.1);
+            background: rgba(0, 0, 0, 0.95);
+            animation: none;
         }
 
         #tableLinkBtn {
@@ -276,6 +359,7 @@
 </head>
 <body>
     <div id="map"></div>
+    <div id="mapTitle" aria-hidden="true">Pharophiles</div>
     <div id="overlay" aria-hidden="true">
         <div id="overlayStage">
             <img id="overlayImage" alt="Lighthouse image">
@@ -330,6 +414,8 @@
             zoom: 4,
             maxBounds: [[-185, 15], [-60, 75]] // Bounding box with padding around markers
         });
+
+        let lastZoomLevel = 4;
 
         function parseCSVLine(line) {
             const result = [];
@@ -478,14 +564,122 @@
                 let lighthouseIndexToPercent = new Map();
                 let yearToAnchorPercent = new Map();
 
+                let currentLightCharacteristic = 'F';
+                let lightTimer = null;
+                let lightIsOn = true;
+
                 function formatConveyedValue(value) {
                     if (value === "publicSale") return "Public Sale";
                     return value;
                 }
 
+                function setLightCharacteristic(characteristic) {
+                    currentLightCharacteristic = (characteristic || 'F').trim();
+                    const circle = document.querySelector('#textBox .light-circle');
+                    if (!circle) return;
+
+                    if (lightTimer) {
+                        clearTimeout(lightTimer);
+                        lightTimer = null;
+                    }
+
+                    const normalized = currentLightCharacteristic.replace(/\s+/g, ' ').trim().toLowerCase();
+                    circle.classList.remove('on', 'off');
+                    lightIsOn = false;
+
+                    const setOn = () => {
+                        circle.classList.add('on');
+                        circle.classList.remove('off');
+                        lightIsOn = true;
+                    };
+                    const setOff = () => {
+                        circle.classList.add('off');
+                        circle.classList.remove('on');
+                        lightIsOn = false;
+                    };
+
+                    if (normalized === 'f') {
+                        setOn();
+                        return;
+                    }
+
+                    const flMatch = normalized.match(/^fl\s*(?:\((\d+)\))?\s*(\d+\.?\d*)s?$/i);
+                    if (flMatch) {
+                        const count = Math.max(1, parseInt(flMatch[1] || '1', 10));
+                        const period = Math.max(1, parseFloat(flMatch[2] || '5'));
+                        const flashDuration = Math.max(0.15, Math.min(0.8, period * 0.12));
+                        const cycleOnTime = Math.min(period * 0.9, count * flashDuration);
+                        const pauseDuration = Math.max(0.2, period - cycleOnTime);
+
+                        const flashCycle = () => {
+                            let i = 0;
+                            const nextFlash = () => {
+                                if (i >= count) {
+                                    setOff();
+                                    lightTimer = setTimeout(flashCycle, pauseDuration * 1000);
+                                    return;
+                                }
+                                setOn();
+                                setTimeout(() => {
+                                    setOff();
+                                    i += 1;
+                                    setTimeout(nextFlash, 0.1 * 1000);
+                                }, flashDuration * 1000);
+                            };
+                            nextFlash();
+                        };
+
+                        setOff();
+                        flashCycle();
+                        return;
+                    }
+
+                    const isoMatch = normalized.match(/^iso\s*(\d+\.?\d*)s?$/i);
+                    if (isoMatch) {
+                        const period = Math.max(1, parseFloat(isoMatch[1] || '6'));
+                        const half = period / 2;
+                        setOn();
+                        lightTimer = setInterval(() => {
+                            lightIsOn ? setOff() : setOn();
+                        }, half * 1000);
+                        return;
+                    }
+
+                    const ocMatch = normalized.match(/^oc\s*(\d+\.?\d*)s?$/i);
+                    if (ocMatch) {
+                        const period = Math.max(1, parseFloat(ocMatch[1] || '4'));
+                        const offDuration = Math.max(0.2, period * 0.2);
+                        const onDuration = period - offDuration;
+                        setOn();
+                        lightTimer = setInterval(() => {
+                            setOff();
+                            setTimeout(setOn, offDuration * 1000);
+                        }, period * 1000);
+                        return;
+                    }
+
+                    // fallback: slow pulse
+                    setOff();
+                    lightTimer = setInterval(() => {
+                        lightIsOn ? setOff() : setOn();
+                    }, 1500);
+                }
+
                 function resetMarkerScales() {
                     if (activeMarkerImg) {
                         activeMarkerImg.style.transform = 'scale(1)';
+                    }
+                }
+
+                function updateMapTitleVisibility() {
+                    const titleEl = document.getElementById('mapTitle');
+                    if (!titleEl) return;
+
+                    const currentZoom = map.getZoom();
+                    if (currentZoom <= 5) {
+                        titleEl.classList.add('visible');
+                    } else {
+                        titleEl.classList.remove('visible');
                     }
                 }
 
@@ -704,6 +898,7 @@
                     
                     // Update overlay content in hierarchical white box
                     textBox.innerHTML = `
+                        <div class="light-circle" aria-hidden="true"></div>
                         <div class="line1">${lh.name.toUpperCase()} (${lh.inception})</div>
                         <div class="line3">${lh.state} — ${lh.county}</div>
                         <div class="line4">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
@@ -721,6 +916,8 @@
                     geoInfo.innerHTML = '';
                     towerInfo.innerHTML = '';
                     sellingInfo.innerHTML = '';
+
+                    setLightCharacteristic(lh.lightCharacteristic);
 
                     // Off-center anchor: keep destination lighthouse in upper-left area
                     const flyOffset = [
@@ -743,14 +940,9 @@
                         overlay.setAttribute('aria-hidden', 'false');
                         updateActiveMarkerScale();
                         
-                        // Position overlay image so its top-left corner aligns with marker's top-left corner
-                        if (activeMarker && activeMarkerImg) {
-                            const markerElement = activeMarker.getElement();
-                            const markerRect = markerElement.getBoundingClientRect();
-                            
-                            overlayImage.style.top = `${markerRect.top}px`;
-                            overlayImage.style.left = `${markerRect.left}px`;
-                        }
+                        // Position overlay image in center of right-side overlay stage
+                        overlayImage.style.top = '50%';
+                        overlayImage.style.left = '50%';
                         
                         function scheduleNextLighthouse() {
                             if (overlayCloseTimer) {
@@ -792,6 +984,14 @@
                     timelineIndicator.style.display = 'none';
                     isSlideshowPaused = false;
                     updatePauseButtonLabel();
+
+                    // Return map to full view state on close
+                    map.flyTo({
+                        center: [-98, 39],
+                        zoom: 4,
+                        duration: 800,
+                        essential: true
+                    });
                 }
 
                 const pauseBtn = document.getElementById('pauseBtn');
@@ -832,6 +1032,7 @@
 
                 map.on('load', () => {
                     buildTimeline();
+                    updateMapTitleVisibility();
 
                     // Create image markers for each lighthouse
                     lighthousesData.forEach((lh) => {
@@ -904,8 +1105,18 @@
                         if (zoomRaf) return;
                         zoomRaf = requestAnimationFrame(() => {
                             updateActiveMarkerScale();
+                            updateMapTitleVisibility();
                             zoomRaf = null;
                         });
+                    });
+
+                    map.on('zoomend', () => {
+                        const currentZoom = map.getZoom();
+                        if (overlay.classList.contains('visible') && currentZoom < lastZoomLevel) {
+                            closeOverlay();
+                        }
+                        lastZoomLevel = currentZoom;
+                        updateMapTitleVisibility();
                     });
                 });
 

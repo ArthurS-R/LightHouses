@@ -8,7 +8,7 @@
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; }
+        body { font-family: 'DIN Pro', Arial, sans-serif; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
         #overlay {
@@ -47,58 +47,73 @@
             display: block;
         }
 
-        #geoInfo {
+        #textBox {
             position: fixed;
-            top: 12px;
-            right: 12px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.55);
-            padding: 10px 12px;
-            border-radius: 8px;
+            left: 12px;
+            bottom: 70px;
+            color: #000;
+            background: #fff;
+            padding: 14px;
+            border-radius: 0;
             font-size: 14px;
             line-height: 1.4;
-            text-align: right;
+            text-align: left;
             max-width: 42vw;
+            max-height: calc(100vh - 70px - 8px);
+            overflow: auto;
+            z-index: 40;
+            box-shadow: none;
         }
 
-        #geoInfo .line1 {
-            font-weight: 600;
+        #textBox > div {
+            margin-bottom: 10px;
         }
 
-        #towerInfo {
-            position: fixed;
-            top: 96px;
-            right: 12px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.55);
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.4;
-            text-align: right;
-            max-width: 42vw;
+        .detail-divider {
+            border: none;
+            border-top: 1px solid rgba(0, 0, 0, 0.14);
+            margin: 8px 0;
         }
 
-        #towerInfo .line1 {
-            font-weight: 600;
+        #geoInfo, #towerInfo, #sellingInfo {
+            position: static;
+            color: inherit;
+            background: transparent;
+            padding: 0;
+            border: 0;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
+        }
+
+        #geoInfo .line1,
+        #towerInfo .line1,
+        #sellingInfo .line1,
+        #textBox .line1 {
+            font-weight: 700;
             margin-bottom: 2px;
         }
 
-        #sellingInfo {
-            position: fixed;
-            top: 260px;
-            right: 12px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.55);
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.4;
-            text-align: right;
-            max-width: 42vw;
+        #geoInfo .line1 {
+            margin-bottom: 4px;
         }
 
-        #sellingInfo .line1 {
+        #textBox .line3 {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        #textBox .line4 {
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        #towerInfo .line1 {
+            margin-bottom: 2px;
+        }
+
+        #towerInfo .line1 {
             font-weight: 600;
             margin-bottom: 2px;
         }
@@ -134,8 +149,30 @@
             margin-right: 24px;
         }
 
+        #pauseBtn {
+            position: static;
+            z-index: 36;
+            background: #222;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        #pauseBtn:hover,
         #tableLinkBtn:hover {
             background: #333;
+        }
+
+        .timeline-buttons {
+            display: flex;
+            align-items: center;
+            z-index: 36;
+            gap: 8px;
         }
 
         #timeline {
@@ -147,16 +184,18 @@
             pointer-events: auto;
             color: #000;
             background: #fff;
-            padding: 12px 24px 16px 24px;
+            padding: 8px 18px 10px 18px;
             border-radius: 0;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
+            min-height: 48px;
+            max-height: 60px;
         }
 
         #timelineTrack {
             position: relative;
-            height: 70px;
+            height: 60px;
             cursor: pointer;
             flex: 1;
         }
@@ -242,25 +281,30 @@
             <img id="overlayImage" alt="Lighthouse image">
         </div>
         <button id="closeOverlay" type="button" aria-label="Close">×</button>
-        <div id="geoInfo">
-            <div class="line1"></div>
-            <div class="line2"></div>
-        </div>
-        <div id="towerInfo">
-            <div class="line1"></div>
-            <div class="line2"></div>
-            <div class="line3"></div>
-            <div class="line4"></div>
-            <div class="line5"></div>
-        </div>
-        <div id="sellingInfo">
-            <div class="line1"></div>
-            <div class="line2"></div>
-            <div class="line3"></div>
+        <div id="textBox">
+            <div id="geoInfo">
+                <div class="line1"></div>
+                <div class="line2"></div>
+            </div>
+            <div id="towerInfo">
+                <div class="line1"></div>
+                <div class="line2"></div>
+                <div class="line3"></div>
+                <div class="line4"></div>
+                <div class="line5"></div>
+            </div>
+            <div id="sellingInfo">
+                <div class="line1"></div>
+                <div class="line2"></div>
+                <div class="line3"></div>
+            </div>
         </div>
     </div>
     <div id="timeline" aria-hidden="true">
-        <a id="tableLinkBtn" href="table/index.html">Open Table</a>
+        <div class="timeline-buttons">
+            <button id="pauseBtn" type="button">Pause</button>
+            <a id="tableLinkBtn" href="table/index.html">Open Table</a>
+        </div>
         <div id="timelineTrack">
             <div id="timelineLine"></div>
             <div id="timelineTicks"></div>
@@ -421,6 +465,7 @@
                 let overlayCloseTimer = null;
                 let activeMarker = null;
                 let activeMarkerImg = null;
+                let isSlideshowPaused = false;
                 const AUTO_ADVANCE_DELAY = 10000; // 10 seconds overlay display
                 const MARKER_MIN_SIZE = 40;
                 const MARKER_MAX_SIZE = 220;
@@ -657,26 +702,25 @@
                         }
                     };
                     
-                    // Update overlay content
-                    geoInfo.innerHTML = `
-                        <div class="line1">${lh.state} — ${lh.county}</div>
-                        <div class="line2">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
-                    `;
-                    
-                    towerInfo.innerHTML = `
-                        <div class="line1">${lh.name} (${lh.inception})</div>
+                    // Update overlay content in hierarchical white box
+                    textBox.innerHTML = `
+                        <div class="line1">${lh.name.toUpperCase()} (${lh.inception})</div>
+                        <div class="line3">${lh.state} — ${lh.county}</div>
+                        <div class="line4">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
+                        <div class="line2">Conveyed to: <strong>${formatConveyedValue(lh.conveyed)}</strong></div>
+                        <div class="line2">Year of transfer: ${lh.yearOfTransfer}</div>
+                        ${lh.conveyed === "publicSale" && lh.proceeds ? `<div class="line2">Proceeds: ${lh.proceeds}</div>` : ""}
+                        <hr class="detail-divider" />
+                        <div class="line1">Characteristics</div>
                         <div class="line2">Height: ${lh.height}</div>
-                        <div class="line3">Focal height: ${lh.focalHeight}</div>
-                        <div class="line4">Range: ${lh.range}</div>
-                        <div class="line5">Light Characteristic: ${lh.lightCharacteristic}</div>
+                        <div class="line2">Focal height: ${lh.focalHeight}</div>
+                        <div class="line2">Light characteristic: ${lh.lightCharacteristic}</div>
                     `;
                     
-                    let sellingHtml = `<div class="line1">Conveyed to: ${formatConveyedValue(lh.conveyed)}</div>
-                        <div class="line2">Year of transfer: ${lh.yearOfTransfer}</div>`;
-                    if (lh.conveyed === "publicSale" && lh.proceeds) {
-                        sellingHtml += `<div class="line3">Proceeds: ${lh.proceeds}</div>`;
-                    }
-                    sellingInfo.innerHTML = sellingHtml;
+                    // Keep geo/tower/selling containers available for compatibility (empty)
+                    geoInfo.innerHTML = '';
+                    towerInfo.innerHTML = '';
+                    sellingInfo.innerHTML = '';
 
                     // Off-center anchor: keep destination lighthouse in upper-left area
                     const flyOffset = [
@@ -708,13 +752,21 @@
                             overlayImage.style.left = `${markerRect.left}px`;
                         }
                         
-                        // Close overlay after 10 seconds and advance to next
-                        overlayCloseTimer = setTimeout(() => {
-                            overlay.classList.remove('visible');
-                            overlay.setAttribute('aria-hidden', 'true');
-                            const nextIndex = (currentLighthouseIndex + 1) % lighthousesData.length;
-                            showLighthouse(nextIndex);
-                        }, AUTO_ADVANCE_DELAY);
+                        function scheduleNextLighthouse() {
+                            if (overlayCloseTimer) {
+                                clearTimeout(overlayCloseTimer);
+                                overlayCloseTimer = null;
+                            }
+                            if (isSlideshowPaused) return;
+                            overlayCloseTimer = setTimeout(() => {
+                                overlay.classList.remove('visible');
+                                overlay.setAttribute('aria-hidden', 'true');
+                                const nextIndex = (currentLighthouseIndex + 1) % lighthousesData.length;
+                                showLighthouse(nextIndex);
+                            }, AUTO_ADVANCE_DELAY);
+                        }
+
+                        scheduleNextLighthouse();
                     });
                 }
 
@@ -738,7 +790,37 @@
                     resetMarkerScales();
                     if (activeMarkerImg) activeMarkerImg.style.display = 'none';
                     timelineIndicator.style.display = 'none';
+                    isSlideshowPaused = false;
+                    updatePauseButtonLabel();
                 }
+
+                const pauseBtn = document.getElementById('pauseBtn');
+                function updatePauseButtonLabel() {
+                    if (!pauseBtn) return;
+                    pauseBtn.textContent = isSlideshowPaused ? 'Resume' : 'Pause';
+                }
+
+                if (pauseBtn) {
+                    pauseBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        isSlideshowPaused = !isSlideshowPaused;
+                        if (overlayCloseTimer) {
+                            clearTimeout(overlayCloseTimer);
+                            overlayCloseTimer = null;
+                        }
+                        if (!isSlideshowPaused && overlay.classList.contains('visible')) {
+                            const nextIndex = (currentLighthouseIndex + 1) % lighthousesData.length;
+                            overlayCloseTimer = setTimeout(() => {
+                                overlay.classList.remove('visible');
+                                overlay.setAttribute('aria-hidden', 'true');
+                                showLighthouse(nextIndex);
+                            }, AUTO_ADVANCE_DELAY);
+                        }
+                        updatePauseButtonLabel();
+                    });
+                }
+
+                updatePauseButtonLabel();
 
                 closeOverlayBtn.addEventListener('click', closeOverlay);
                 document.addEventListener('keydown', (e) => {

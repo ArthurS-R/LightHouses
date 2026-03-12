@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>US Lighthouses Map</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.19.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.19.0/mapbox-gl.css' rel='stylesheet' />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 300ms ease;
+            display: none;
+        }
+
+        #overlay.visible {
+            display: block;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #overlayStage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #overlayImage {
+            position: absolute;
+            max-width: calc(100vw - 200px);
+            max-height: calc(100vh - 200px);
+            object-fit: contain;
+            object-position: top left;
+            display: block;
+        }
+
+        #geoInfo {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: right;
+            max-width: 42vw;
+        }
+
+        #geoInfo .line1 {
+            font-weight: 600;
+        }
+
+        #towerInfo {
+            position: fixed;
+            top: 96px;
+            right: 12px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: right;
+            max-width: 42vw;
+        }
+
+        #towerInfo .line1 {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        #sellingInfo {
+            position: fixed;
+            top: 260px;
+            right: 12px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: right;
+            max-width: 42vw;
+        }
+
+        #sellingInfo .line1 {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        #closeOverlay {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            border: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 30;
+        }
+
+        #tableLinkBtn {
+            position: static;
+            z-index: 36;
+            background: #000;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            margin-right: 24px;
+        }
+
+        #tableLinkBtn:hover {
+            background: #333;
+        }
+
+        #timeline {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 35;
+            pointer-events: auto;
+            color: #000;
+            background: #fff;
+            padding: 12px 24px 16px 24px;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #timelineTrack {
+            position: relative;
+            height: 70px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        #timelineLine {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .timelineTickLabel {
+            position: absolute;
+            top: 38px;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.6);
+            white-space: nowrap;
+            transition: font-size 140ms ease, color 140ms ease, font-weight 140ms ease;
+            cursor: pointer;
+        }
+
+        .timelineTickLabel.is-hovered {
+            font-size: 13px;
+            color: rgba(0, 0, 0, 0.95);
+            font-weight: 600;
+        }
+
+        .timelineTick {
+            position: absolute;
+            top: 16px;
+            width: 12px;
+            height: 16px;
+            background: linear-gradient(
+                to right,
+                transparent calc(50% - 1px),
+                rgba(0, 0, 0, 0.75) calc(50% - 1px),
+                rgba(0, 0, 0, 0.75) calc(50% + 1px),
+                transparent calc(50% + 1px)
+            );
+            transform: translateX(-50%);
+            transition: transform 140ms ease, height 140ms ease, top 140ms ease;
+            cursor: pointer;
+        }
+
+        .timelineTick.is-hovered {
+            transform: translateX(-50%) scaleX(1.8);
+            height: 22px;
+            top: 13px;
+        }
+
+        #timelineIndicator {
+            position: absolute;
+            top: 6px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid #000000;
+            transform: translateX(-50%);
+            display: none;
+        }
+
+        #timelineYear {
+            position: absolute;
+            top: -2px;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: #000;
+            display: none !important;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="overlay" aria-hidden="true">
+        <div id="overlayStage">
+            <img id="overlayImage" alt="Lighthouse image">
+        </div>
+        <button id="closeOverlay" type="button" aria-label="Close">×</button>
+        <div id="geoInfo">
+            <div class="line1"></div>
+            <div class="line2"></div>
+        </div>
+        <div id="towerInfo">
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="line3"></div>
+            <div class="line4"></div>
+            <div class="line5"></div>
+        </div>
+        <div id="sellingInfo">
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="line3"></div>
+        </div>
+    </div>
+    <div id="timeline" aria-hidden="true">
+        <a id="tableLinkBtn" href="table/index.html">Open Table</a>
+        <div id="timelineTrack">
+            <div id="timelineLine"></div>
+            <div id="timelineTicks"></div>
+            <div id="timelineIndicator"></div>
+            <div id="timelineYear"></div>
+        </div>
+    </div>
+
+    <script>
+        const CSV_FILE = 'table/UsLighthouses_Web.csv';
+        const SAT_IMAGE_FOLDER = 'table/images_sat';
+        const PHOTO_IMAGE_FOLDER = 'table/images';
+        const IMG_MIN_HEIGHT = '700px'; // Adjust min height of overlay images
+        const IMG_MAX_HEIGHT = '900px'; // Adjust max height of overlay images
+        let lighthousesData = [];
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoidGFyYWh1bmRlcnRwZnVuZCIsImEiOiJjbW1ka2k5ODQwM3k0MnFyNjAwbmJvZGFiIn0.Zjbar3-1_LyPYzw4o5O6jQ';
+        
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/tarahundertpfund/cmmdpkm2t00hg01qz52yefn5u',
+            center: [-98, 39],
+            zoom: 4,
+            maxBounds: [[-185, 15], [-60, 75]] // Bounding box with padding around markers
+        });
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current);
+                    current = "";
+                } else {
+                    current += ch;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        function findHeaderIndex(headers, targetName) {
+            const target = targetName.toLowerCase();
+            return headers.findIndex(h => (h || "").trim().toLowerCase() === target);
+        }
+
+        async function loadAndDisplayData() {
+            try {
+                const response = await fetch(CSV_FILE);
+                const text = await response.text();
+                const rows = text.trim().split(/\r?\n/);
+                const headers = parseCSVLine(rows[0]);
+
+                const nameIdx = findHeaderIndex(headers, "Name");
+                const idIdx = findHeaderIndex(headers, "ID");
+                const latIdx = findHeaderIndex(headers, "Latitude");
+                const lonIdx = findHeaderIndex(headers, "Longitude");
+                const inceptionIdx = findHeaderIndex(headers, "Date of inception");
+                const stateIdx = findHeaderIndex(headers, "State");
+                const countyIdx = findHeaderIndex(headers, "County");
+                const satImageIdx = findHeaderIndex(headers, "satImageFN");
+                const photoImageIdx = findHeaderIndex(headers, "imageFN");
+                const heightIdx = findHeaderIndex(headers, "Height (m)");
+                const focalHeightIdx = findHeaderIndex(headers, "Focalheight (m)");
+                const rangeIdx = findHeaderIndex(headers, "Range (nm)");
+                const lightCharacteristicIdx = findHeaderIndex(headers, "Light characteristic");
+                const conveyedIdx = findHeaderIndex(headers, "Conveyd Lightstaition");
+                const yearOfTransferIdx = findHeaderIndex(headers, "yearOfTransfer");
+                const proceedsIdx = findHeaderIndex(headers, "proceeds");
+
+                if (latIdx === -1 || lonIdx === -1) {
+                    console.error("Latitude or Longitude columns not found");
+                    return;
+                }
+
+                const features = [];
+                lighthousesData = [];
+
+                for (let i = 1; i < rows.length; i++) {
+                    const columns = parseCSVLine(rows[i]);
+                    const lat = parseFloat(columns[latIdx] || "0");
+                    const lon = parseFloat(columns[lonIdx] || "0");
+
+                    if (lat && lon && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                        const name = (columns[nameIdx] || "").trim();
+                        const id = (columns[idIdx] || "").trim();
+                        const inception = (columns[inceptionIdx] || "").trim();
+                        const state = (columns[stateIdx] || "").trim();
+                        const county = (columns[countyIdx] || "").trim();
+                        const satImageFromCsv = satImageIdx !== -1 ? (columns[satImageIdx] || "").trim() : "";
+                        const photoImageFromCsv = photoImageIdx !== -1 ? (columns[photoImageIdx] || "").trim() : "";
+                        const satImage = satImageFromCsv || (id ? `${id}.png` : "");
+                        const photoImage = photoImageFromCsv || (id ? `${id}.jpg` : "");
+                        const height = heightIdx !== -1 ? (columns[heightIdx] || "").trim() : "";
+                        const focalHeight = focalHeightIdx !== -1 ? (columns[focalHeightIdx] || "").trim() : "";
+                        const range = rangeIdx !== -1 ? (columns[rangeIdx] || "").trim() : "";
+                        const lightCharacteristic = lightCharacteristicIdx !== -1 ? (columns[lightCharacteristicIdx] || "").trim() : "";
+                        const conveyed = conveyedIdx !== -1 ? (columns[conveyedIdx] || "").trim() : "";
+                        const yearOfTransfer = yearOfTransferIdx !== -1 ? (columns[yearOfTransferIdx] || "").trim() : "";
+                        const proceeds = proceedsIdx !== -1 ? (columns[proceedsIdx] || "").trim() : "";
+
+                        lighthousesData.push({
+                            name,
+                            inception,
+                            state,
+                            county,
+                            lat,
+                            lon,
+                            satImage,
+                            photoImage,
+                            height,
+                            focalHeight,
+                            range,
+                            lightCharacteristic,
+                            conveyed,
+                            yearOfTransfer,
+                            proceeds
+                        });
+
+                        features.push({
+                            type: "Feature",
+                            geometry: {
+                                type: "Point",
+                                coordinates: [lon, lat]
+                            },
+                            properties: {
+                                index: lighthousesData.length - 1,
+                                name,
+                                image: satImage ? `${SAT_IMAGE_FOLDER}/${satImage}` : null
+                            }
+                        });
+                    }
+                }
+
+                const overlay = document.getElementById('overlay');
+                const overlayImage = document.getElementById('overlayImage');
+                const geoInfo = document.getElementById('geoInfo');
+                const towerInfo = document.getElementById('towerInfo');
+                const sellingInfo = document.getElementById('sellingInfo');
+                const closeOverlayBtn = document.getElementById('closeOverlay');
+                const tableLinkBtn = document.getElementById('tableLinkBtn');
+                const timelineTicks = document.getElementById('timelineTicks');
+                const timelineIndicator = document.getElementById('timelineIndicator');
+                const timelineYear = document.getElementById('timelineYear');
+                const timelineTrack = document.getElementById('timelineTrack');
+
+                let currentLighthouseIndex = -1;
+                let overlayCloseTimer = null;
+                let activeMarker = null;
+                let activeMarkerImg = null;
+                const AUTO_ADVANCE_DELAY = 10000; // 10 seconds overlay display
+                const MARKER_MIN_SIZE = 40;
+                const MARKER_MAX_SIZE = 220;
+                const MARKER_MIN_ZOOM = 4;
+                const MARKER_MAX_ZOOM = 12;
+                let timelineMinYear = null;
+                let timelineMaxYear = null;
+                let yearToFirstIndex = new Map();
+                let yearToIndexes = new Map();
+                let lighthouseIndexToPercent = new Map();
+                let yearToAnchorPercent = new Map();
+
+                function formatConveyedValue(value) {
+                    if (value === "publicSale") return "Public Sale";
+                    return value;
+                }
+
+                function resetMarkerScales() {
+                    if (activeMarkerImg) {
+                        activeMarkerImg.style.transform = 'scale(1)';
+                    }
+                }
+
+                function updateActiveMarkerScale() {
+                    if (!activeMarkerImg || currentLighthouseIndex < 0) return;
+
+                    const z = map.getZoom();
+                    const t = Math.max(0, Math.min(1, (z - MARKER_MIN_ZOOM) / (MARKER_MAX_ZOOM - MARKER_MIN_ZOOM)));
+                    const size = Math.round(MARKER_MIN_SIZE + (MARKER_MAX_SIZE - MARKER_MIN_SIZE) * t);
+                    const scale = size / MARKER_MIN_SIZE;
+                    activeMarkerImg.style.transform = `scale(${scale})`;
+                }
+
+                function updateActiveMarker(lh) {
+                    if (!activeMarker || !activeMarkerImg) return;
+                    const satSrc = lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "";
+
+                    activeMarkerImg.onerror = null;
+                    activeMarkerImg.src = satSrc;
+                    activeMarkerImg.onerror = () => {
+                        activeMarkerImg.onerror = null;
+                        activeMarkerImg.style.display = 'none';
+                    };
+
+                    activeMarkerImg.style.display = 'block';
+                    activeMarker.setLngLat([lh.lon, lh.lat]);
+                }
+
+                function buildTimeline() {
+                    yearToFirstIndex = new Map();
+                    yearToIndexes = new Map();
+                    lighthouseIndexToPercent = new Map();
+                    yearToAnchorPercent = new Map();
+                    lighthousesData.forEach((item, index) => {
+                        const year = parseInt(item.yearOfTransfer, 10);
+                        if (Number.isFinite(year)) {
+                            if (!yearToFirstIndex.has(year)) {
+                                yearToFirstIndex.set(year, index);
+                            }
+                            if (!yearToIndexes.has(year)) {
+                                yearToIndexes.set(year, []);
+                            }
+                            yearToIndexes.get(year).push(index);
+                        }
+                    });
+
+                    const years = Array.from(yearToIndexes.keys()).sort((a, b) => a - b);
+
+                    timelineTicks.innerHTML = '';
+                    timelineIndicator.style.display = 'none';
+
+                    if (!years.length) {
+                        timelineMinYear = null;
+                        timelineMaxYear = null;
+                        return;
+                    }
+
+                    timelineMinYear = years[0];
+                    timelineMaxYear = years[years.length - 1];
+
+                    const yearStepPercent = years.length <= 1
+                        ? 100
+                        : (100 / years.length);
+
+                    years.forEach((year, yearPosition) => {
+                        const anchorPercent = yearPosition * yearStepPercent;
+                        yearToAnchorPercent.set(year, anchorPercent);
+                    });
+
+                    years.forEach((year, yearPosition) => {
+                        const yearIndexes = yearToIndexes.get(year) || [];
+                        const percent = yearToAnchorPercent.get(year) ?? 0;
+                        const nextYear = years[yearPosition + 1];
+                        const nextPercent = typeof nextYear === 'number'
+                            ? (yearToAnchorPercent.get(nextYear) ?? percent)
+                            : Math.min(100, percent + yearStepPercent);
+                        const intervalWidth = Math.max(0, nextPercent - percent);
+
+                        const label = document.createElement('div');
+                        label.className = 'timelineTickLabel';
+                        label.textContent = String(year);
+                        label.style.left = `${percent}%`;
+
+                        const yearTicks = [];
+                        const tickCount = yearIndexes.length;
+
+                        yearIndexes.forEach((lhIndex, orderInYear) => {
+                            const tick = document.createElement('div');
+                            tick.className = 'timelineTick';
+                            tick.dataset.year = String(year);
+                            tick.dataset.index = String(lhIndex);
+
+                            const offsetPercent = tickCount <= 1
+                                ? 0
+                                : (orderInYear * (intervalWidth / tickCount));
+                            const tickPercent = Math.max(0, Math.min(100, percent + offsetPercent));
+
+                            tick.style.left = `${tickPercent}%`;
+                            lighthouseIndexToPercent.set(lhIndex, tickPercent);
+
+                            tick.addEventListener('click', (event) => {
+                                event.stopPropagation();
+                                showLighthouse(lhIndex);
+                            });
+
+                            yearTicks.push(tick);
+                            timelineTicks.appendChild(tick);
+                        });
+
+                        const setLabelHoverState = (isHovered) => {
+                            label.classList.toggle('is-hovered', isHovered);
+                        };
+
+                        yearTicks.forEach((yearTick) => {
+                            yearTick.addEventListener('mouseenter', () => {
+                                yearTick.classList.add('is-hovered');
+                                setLabelHoverState(true);
+                            });
+                            yearTick.addEventListener('mouseleave', () => {
+                                yearTick.classList.remove('is-hovered');
+                                setLabelHoverState(false);
+                            });
+                        });
+                        label.addEventListener('mouseenter', () => {
+                            setLabelHoverState(true);
+                        });
+                        label.addEventListener('mouseleave', () => {
+                            setLabelHoverState(false);
+                        });
+                        label.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                            const firstIndex = yearToFirstIndex.get(year);
+                            if (typeof firstIndex === 'number') {
+                                showLighthouse(firstIndex);
+                            }
+                        });
+                        
+                        timelineTicks.appendChild(label);
+                    });
+                }
+
+                function jumpToLighthouseFromPosition(clientX) {
+                    if (!lighthouseIndexToPercent.size) return;
+
+                    const rect = timelineTrack.getBoundingClientRect();
+                    if (!rect.width) return;
+
+                    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                    const targetPercent = ratio * 100;
+
+                    let nearestIndex = null;
+                    let nearestDistance = Infinity;
+                    lighthouseIndexToPercent.forEach((tickPercent, index) => {
+                        const distance = Math.abs(tickPercent - targetPercent);
+                        if (distance < nearestDistance) {
+                            nearestDistance = distance;
+                            nearestIndex = index;
+                        }
+                    });
+
+                    if (typeof nearestIndex === 'number') {
+                        showLighthouse(nearestIndex);
+                    }
+                }
+
+                function updateTimelineIndicator(yearValue) {
+                    if (timelineMinYear === null || timelineMaxYear === null) return;
+
+                    const percent = lighthouseIndexToPercent.get(yearValue);
+                    if (typeof percent !== 'number') {
+                        timelineIndicator.style.display = 'none';
+                        return;
+                    }
+
+                    timelineIndicator.style.left = `${percent}%`;
+                    timelineIndicator.style.display = 'block';
+                }
+
+                function showLighthouse(index) {
+                    if (index < 0 || index >= lighthousesData.length) return;
+                    
+                    currentLighthouseIndex = index;
+                    const lh = lighthousesData[index];
+                    updateActiveMarker(lh);
+                    updateActiveMarkerScale();
+                    updateTimelineIndicator(index);
+                    
+                    // Clear any existing overlay close timer
+                    if (overlayCloseTimer) {
+                        clearTimeout(overlayCloseTimer);
+                    }
+                    
+                    // Close overlay while flying
+                    overlay.classList.remove('visible');
+                    overlay.setAttribute('aria-hidden', 'true');
+
+                    const imageSrc = lh.photoImage ? `${PHOTO_IMAGE_FOLDER}/${lh.photoImage}` : (lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "");
+                    if (!imageSrc) return;
+
+                    // Pre-load image with safe fallback (avoid infinite onerror loops)
+                    const satFallbackSrc = lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "";
+                    overlayImage.onerror = null;
+                    overlayImage.src = imageSrc;
+                    overlayImage.style.minHeight = IMG_MIN_HEIGHT;
+                    overlayImage.style.maxHeight = IMG_MAX_HEIGHT;
+                    overlayImage.onerror = () => {
+                        overlayImage.onerror = null;
+                        if (satFallbackSrc && satFallbackSrc !== imageSrc) {
+                            overlayImage.src = satFallbackSrc;
+                        } else {
+                            console.warn(`Missing overlay image for: ${lh.name}`);
+                            overlay.classList.remove('visible');
+                            overlay.setAttribute('aria-hidden', 'true');
+                        }
+                    };
+                    
+                    // Update overlay content
+                    geoInfo.innerHTML = `
+                        <div class="line1">${lh.state} — ${lh.county}</div>
+                        <div class="line2">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
+                    `;
+                    
+                    towerInfo.innerHTML = `
+                        <div class="line1">${lh.name} (${lh.inception})</div>
+                        <div class="line2">Height: ${lh.height}</div>
+                        <div class="line3">Focal height: ${lh.focalHeight}</div>
+                        <div class="line4">Range: ${lh.range}</div>
+                        <div class="line5">Light Characteristic: ${lh.lightCharacteristic}</div>
+                    `;
+                    
+                    let sellingHtml = `<div class="line1">Conveyed to: ${formatConveyedValue(lh.conveyed)}</div>
+                        <div class="line2">Year of transfer: ${lh.yearOfTransfer}</div>`;
+                    if (lh.conveyed === "publicSale" && lh.proceeds) {
+                        sellingHtml += `<div class="line3">Proceeds: ${lh.proceeds}</div>`;
+                    }
+                    sellingInfo.innerHTML = sellingHtml;
+
+                    // Off-center anchor: keep destination lighthouse in upper-left area
+                    const flyOffset = [
+                        Math.round(window.innerWidth * -0.40),
+                        Math.round(window.innerHeight * -0.32)
+                    ];
+                    
+                    // Fly to lighthouse
+                    map.flyTo({
+                        center: [lh.lon, lh.lat],
+                        zoom: 12,
+                        duration: 3000,
+                        offset: flyOffset,
+                        essential: true
+                    });
+                    
+                    // Open overlay and auto-close after 10 seconds
+                    map.once('moveend', () => {
+                        overlay.classList.add('visible');
+                        overlay.setAttribute('aria-hidden', 'false');
+                        updateActiveMarkerScale();
+                        
+                        // Position overlay image so its top-left corner aligns with marker's top-left corner
+                        if (activeMarker && activeMarkerImg) {
+                            const markerElement = activeMarker.getElement();
+                            const markerRect = markerElement.getBoundingClientRect();
+                            
+                            overlayImage.style.top = `${markerRect.top}px`;
+                            overlayImage.style.left = `${markerRect.left}px`;
+                        }
+                        
+                        // Close overlay after 10 seconds and advance to next
+                        overlayCloseTimer = setTimeout(() => {
+                            overlay.classList.remove('visible');
+                            overlay.setAttribute('aria-hidden', 'true');
+                            const nextIndex = (currentLighthouseIndex + 1) % lighthousesData.length;
+                            showLighthouse(nextIndex);
+                        }, AUTO_ADVANCE_DELAY);
+                    });
+                }
+
+                function openOverlay(lh) {
+                    const index = lighthousesData.indexOf(lh);
+                    if (index !== -1) {
+                        showLighthouse(index);
+                    }
+                }
+
+                function closeOverlay() {
+                    overlay.classList.remove('visible');
+                    overlay.setAttribute('aria-hidden', 'true');
+
+                    if (overlayCloseTimer) {
+                        clearTimeout(overlayCloseTimer);
+                        overlayCloseTimer = null;
+                    }
+                    
+                    currentLighthouseIndex = -1;
+                    resetMarkerScales();
+                    if (activeMarkerImg) activeMarkerImg.style.display = 'none';
+                    timelineIndicator.style.display = 'none';
+                }
+
+                closeOverlayBtn.addEventListener('click', closeOverlay);
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeOverlay();
+                });
+                timelineTrack.addEventListener('click', (event) => {
+                    jumpToLighthouseFromPosition(event.clientX);
+                });
+
+                map.on('load', () => {
+                    buildTimeline();
+
+                    // Create image markers for each lighthouse
+                    lighthousesData.forEach((lh) => {
+                        const markerEl = document.createElement('div');
+                        markerEl.style.cursor = 'pointer';
+
+                        const markerImg = document.createElement('img');
+                        markerImg.alt = lh.name;
+                        markerImg.className = 'lighthouse-marker';
+                        markerImg.style.width = '40px';
+                        markerImg.style.height = '40px';
+                        markerImg.style.objectFit = 'cover';
+                        markerImg.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+                        markerImg.style.transition = 'transform 200ms ease';
+                        markerImg.style.transformOrigin = 'center center';
+                        markerEl.appendChild(markerImg);
+                        
+                        const imageSrc = lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "";
+                        if (imageSrc) {
+                            markerImg.src = imageSrc;
+                            markerImg.onerror = () => {
+                                markerEl.style.display = 'none';
+                            };
+                        }
+                        
+                        // Create and add marker
+                        new mapboxgl.Marker({
+                            element: markerEl
+                        })
+                            .setLngLat([lh.lon, lh.lat])
+                            .addTo(map);
+                        
+                        // Open overlay on marker click
+                        markerEl.addEventListener('click', () => {
+                            openOverlay(lh);
+                        });
+                        
+                        // Add hover effect
+                        markerEl.addEventListener('mouseenter', () => {
+                            markerImg.style.transform = 'scale(1.2)';
+                        });
+                        markerEl.addEventListener('mouseleave', () => {
+                            markerImg.style.transform = 'scale(1)';
+                        });
+                    });
+
+                    // Create one reusable active image marker (performance)
+                    const activeEl = document.createElement('div');
+                    activeEl.style.pointerEvents = 'none';
+
+                    activeMarkerImg = document.createElement('img');
+                    activeMarkerImg.alt = 'Active lighthouse marker';
+                    activeMarkerImg.style.width = `${MARKER_MIN_SIZE}px`;
+                    activeMarkerImg.style.height = `${MARKER_MIN_SIZE}px`;
+                    activeMarkerImg.style.objectFit = 'cover';
+                    activeMarkerImg.style.display = 'none';
+                    activeMarkerImg.style.transformOrigin = 'center center';
+                    activeMarkerImg.style.willChange = 'transform';
+                    activeEl.appendChild(activeMarkerImg);
+
+                    activeMarker = new mapboxgl.Marker({
+                        element: activeEl
+                    })
+                        .setLngLat([0, 0])
+                        .addTo(map);
+
+                    resetMarkerScales();
+                    let zoomRaf = null;
+                    map.on('zoom', () => {
+                        if (zoomRaf) return;
+                        zoomRaf = requestAnimationFrame(() => {
+                            updateActiveMarkerScale();
+                            zoomRaf = null;
+                        });
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+            }
+        }
+
+        loadAndDisplayData();
+    </script>
+</body>
+</html>

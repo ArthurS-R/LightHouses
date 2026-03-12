@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Data Table Viewer</title>
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Homepage</a>
+        <h1>CSV Data Table Viewer</h1>        
+        <div id="error-container"></div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Global Search</label>
+                <input type="text" id="globalSearch" placeholder="Search all columns...">
+            </div>
+            
+            <div class="control-group">
+                <label>Group By Column</label>
+                <select id="groupByColumn">
+                    <option value="">No Grouping</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button id="clearFilters">Clear All Filters</button>
+                <button id="downloadCSV">Download CSV</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Loading data...</div>
+        
+        <div id="tableWrapper" class="table-wrapper" style="display: none;">
+            <div id="dataTable"></div>
+        </div>
+
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="image-modal" id="imageModal">
+        <img id="modalImage" src="" alt="Preview">
+    </div>
+
+    <!-- d3-dsv for CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/d3-dsv@3.0.1/dist/d3-dsv.min.js"></script>
+    
+    <!-- Tabulator -->
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+    
+    <!-- Application script -->
+    <script src="script.js"></script>
+</body>
+</html>

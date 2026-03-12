@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lighthouse Slideshow</title>
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .stage {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #slide {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            display: block;
+        }
+
+        #status {
+            position: fixed;
+            left: 12px;
+            bottom: 12px;
+            color: #fff;
+            opacity: 0.75;
+            font-size: 14px;
+        }
+
+        #geoInfo {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: right;
+            max-width: 42vw;
+        }
+
+        #geoInfo .line1 {
+            font-weight: 600;
+        }
+
+        #towerInfo {
+            position: fixed;
+            top: 96px;
+            right: 12px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: right;
+            max-width: 42vw;
+        }
+
+        #towerInfo .line1 {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        #sellingInfo {
+            position: fixed;
+            top: 260px;
+            right: 12px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: right;
+            max-width: 42vw;
+        }
+
+        #sellingInfo .line1 {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="stage">
+        <img id="slide" alt="Slideshow image" />
+    </div>
+    <div id="geoInfo">
+        <div class="line1">Loading location…</div>
+        <div class="line2"></div>
+    </div>
+    <div id="towerInfo">
+        <div class="line1">Loading tower data…</div>
+        <div class="line2"></div>
+        <div class="line3"></div>
+        <div class="line4"></div>
+        <div class="line5"></div>
+    </div>
+    <div id="sellingInfo">
+        <div class="line1">Loading selling data…</div>
+        <div class="line2"></div>
+        <div class="line3"></div>
+    </div>
+    <div id="status">Loading…</div>
+
+    <script>
+        const CSV_FILE = "../table/UsLighthouses_Web.csv";
+        const IMAGE_FOLDER = "../table/images";
+        const SHOW_MS = 2000;
+        const sellingInfoEl = document.getElementById("sellingInfo");
+
+        const slide = document.getElementById("slide");
+        const statusEl = document.getElementById("status");
+        const geoInfoEl = document.getElementById("geoInfo");
+        const towerInfoEl = document.getElementById("towerInfo");
+
+        let slides = [];
+        let currentIndex = 0;
+
+        // Get slide index from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const startSlide = parseInt(urlParams.get('slide')) || 0;
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current);
+                    current = "";
+                } else {
+                    current += ch;
+                }
+            }
+
+            result.push(current);
+            return result;
+        }
+
+        function findHeaderIndex(headers, targetName) {
+            const target = targetName.toLowerCase();
+            return headers.findIndex(h => (h || "").trim().toLowerCase() === target);
+        }
+
+        function findHeaderIndexAny(headers, targetNames) {
+            for (const name of targetNames) {
+                const idx = findHeaderIndex(headers, name);
+                if (idx !== -1) return idx;
+            }
+            return -1;
+        }
+
+        async function loadSlides() {
+            const response = await fetch(CSV_FILE);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
+            }
+
+            const text = await response.text();
+            const rows = text.trim().split(/\r?\n/);
+            const headers = parseCSVLine(rows[0]);
+            const imageIndex = findHeaderIndex(headers, "imageFN");
+            const stateIndex = findHeaderIndex(headers, "state");
+            const countyIndex = findHeaderIndex(headers, "county");
+            const latIndex = findHeaderIndex(headers, "Latitude");
+            const lonIndex = findHeaderIndex(headers, "Longitude");
+
+            const nameIndex = findHeaderIndexAny(headers, ["Name", "itemLabel", "name"]);
+            const inceptionIndex = findHeaderIndexAny(headers, ["Date of inception", "inception", "date of inception"]);
+            const heightIndex = findHeaderIndexAny(headers, ["Height (m)", "height in", "height", "Height"]);
+            const focalHeightIndex = findHeaderIndexAny(headers, ["Focalheight (m)", "focalHeight", "focal height", "Focalheight"]);
+            const rangeIndex = findHeaderIndexAny(headers, ["Range (nm)", "range in nauticalmiles", "range", "Range"]);
+            const conveyedIndex = findHeaderIndexAny(headers, ["Conveyed Lightstation", "Conveyd Lightstaition", "conveyed"]);
+            const yearOfTransferIndex = findHeaderIndexAny(headers, ["yearOfTransfer", "year of transfer", "YearOfTransfer"]);
+            const proceedsIndex = findHeaderIndexAny(headers, ["proceeds", "Proceeds"]);
+            const lightCharacteristicIndex = findHeaderIndexAny(headers, ["Light characteristic", "lightCharacteristic", "light characteristic"]);
+
+            if (imageIndex === -1) {
+                throw new Error("Column 'imageFN' not found in CSV");
+            }
+
+            if (stateIndex === -1 || countyIndex === -1 || latIndex === -1 || lonIndex === -1) {
+                throw new Error("One or more geo columns not found: state, county, Latitude, Longitude");
+            }
+
+            const loaded = [];
+            for (let i = 1; i < rows.length; i++) {
+                const columns = parseCSVLine(rows[i]);
+                const imageName = (columns[imageIndex] || "").trim();
+                if (imageName) {
+                    loaded.push({
+                        src: `${IMAGE_FOLDER}/${imageName}`,
+                        state: (columns[stateIndex] || "").trim(),
+                        county: (columns[countyIndex] || "").trim(),
+                        latitude: (columns[latIndex] || "").trim(),
+                        longitude: (columns[lonIndex] || "").trim(),
+                        name: nameIndex !== -1 ? (columns[nameIndex] || "").trim() : "",
+                        inception: inceptionIndex !== -1 ? (columns[inceptionIndex] || "").trim() : "",
+                        conveyed: conveyedIndex !== -1 ? (columns[conveyedIndex] || "").trim() : "",
+                        yearOfTransfer: yearOfTransferIndex !== -1 ? (columns[yearOfTransferIndex] || "").trim() : "",
+                        proceeds: proceedsIndex !== -1 ? (columns[proceedsIndex] || "").trim() : "",
+                        height: heightIndex !== -1 ? (columns[heightIndex] || "").trim() : "",
+                        focalHeight: focalHeightIndex !== -1 ? (columns[focalHeightIndex] || "").trim() : "",
+                        range: rangeIndex !== -1 ? (columns[rangeIndex] || "").trim() : "",
+                        lightCharacteristic: lightCharacteristicIndex !== -1 ? (columns[lightCharacteristicIndex] || "").trim() : "",
+                    });
+                }
+            }
+
+            return loaded;
+        }
+
+        function formatConveyedValue(value) {
+            if (value === "publicSale") return "Public Sale";
+            return value;
+        }
+
+        function showCurrentImage() {
+            if (!slides.length) return;
+            const current = slides[currentIndex];
+            slide.src = current.src;
+            statusEl.textContent = `${currentIndex + 1}/${slides.length}`;
+            geoInfoEl.innerHTML = `
+                <div class="line1">${current.state} — ${current.county}</div>
+                <div class="line2">Lat: ${current.latitude} | Lon: ${current.longitude}</div>
+            `;
+            towerInfoEl.innerHTML = `
+                <div class="line1">${current.name} (${current.inception})</div>
+                <div class="line2">Height: ${current.height}</div>
+                <div class="line3">Focal height: ${current.focalHeight}</div>
+                <div class="line4">Range: ${current.range}</div>
+                <div class="line5">Light Characteristic: ${current.lightCharacteristic}</div>
+            `;
+            let sellingHtml = `<div class="line1">Conveyed to: ${formatConveyedValue(current.conveyed)}</div>
+                <div class="line2">Year of transfer: ${current.yearOfTransfer}</div>`;
+            if (current.conveyed === "publicSale" && current.proceeds) {
+                sellingHtml += `<div class="line3">Proceeds: ${current.proceeds}</div>`;
+            }
+            sellingInfoEl.innerHTML = sellingHtml;
+        }
+
+        function startSlideshow() {
+            currentIndex = startSlide;
+            showCurrentImage();
+            setInterval(() => {
+                currentIndex = (currentIndex + 1) % slides.length;
+                showCurrentImage();
+            }, SHOW_MS);
+        }
+
+        (async function init() {
+            try {
+                slides = await loadSlides();
+
+                if (!slides.length) {
+                    statusEl.textContent = "No imageFN values found.";
+                    return;
+                }
+
+                startSlideshow();
+            } catch (error) {
+                console.error(error);
+                statusEl.textContent = `Error: ${error.message}`;
+            }
+        })();
+    </script>
+</body>
+</html>

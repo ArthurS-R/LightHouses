@@ -26,7 +26,7 @@
             text-shadow: none;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 220ms ease, transform 220ms ease;
+            transition: opacity 200ms ease, transform 200ms ease;
         }
 
         #mapTitle.visible {
@@ -43,7 +43,7 @@
             z-index: 20;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 300ms ease;
+            transition: opacity 200ms ease;
             display: none;
         }
 
@@ -68,7 +68,9 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: calc(100% - 24px);
+            right: 24px;
+            width: auto;
+            max-width: calc(100% - 24px);
             max-height: calc(100% - 24px);
             object-fit: contain;
             object-position: center center;
@@ -107,7 +109,7 @@
             border-radius: 50%;
             background: #fff;
             border: 2px solid #000;
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity 200ms ease, transform 200ms ease;
             pointer-events: none;
         }
 
@@ -119,7 +121,7 @@
         #textBox .light-circle.off {
         
             transform: translate(-50%, -50%) scale(1);
-            background: #ccc;
+            background: #000;
         }
 
         #textBox > div {
@@ -180,12 +182,12 @@
             top: 12px;
             right: 12px;
             left: auto;
-            border: 0;
+            border: 2px solid #000;
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: #000;
-            color: #fff;
+            background: #fff;
+            color: #000;
             font-size: 20px;
             font-weight: 700;
             cursor: pointer;
@@ -193,7 +195,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 140ms ease, background 120ms ease;
+            transition: transform 200ms ease, background 200ms ease;
         }
 
         @keyframes closeOverlayCross {
@@ -207,12 +209,14 @@
         #closeOverlay:hover {
             transform: scale(1.2);
             background: rgba(0, 0, 0, 0.85);
-            animation: closeOverlayCross 0.4s ease forwards;
+            color: #fff;
+            animation: closeOverlayCross 0.2s ease forwards;
         }
 
         #closeOverlay:active {
             transform: scale(1.1);
             background: rgba(0, 0, 0, 0.95);
+            color: #fff;
             animation: none;
         }
 
@@ -289,7 +293,7 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: rgba(0, 0, 0, 0.6);
+            background: #bbb;
         }
 
         .timelineTickLabel {
@@ -298,16 +302,18 @@
             transform: translateX(-50%);
             font-size: 11px;
             font-weight: 500;
-            color: rgba(0, 0, 0, 0.6);
+            color: #bbb;
             white-space: nowrap;
-            transition: font-size 140ms ease, color 140ms ease, font-weight 140ms ease;
+            transition: font-size 200ms ease, color 200ms ease, font-weight 200ms ease;
             cursor: pointer;
         }
 
         .timelineTickLabel.is-hovered {
             font-size: 13px;
-            color: rgba(0, 0, 0, 0.95);
+            color: #000;
             font-weight: 600;
+                    color: #000 !important;
+                    font-weight: 700;
         }
 
         .timelineTick {
@@ -318,12 +324,12 @@
             background: linear-gradient(
                 to right,
                 transparent calc(50% - 1px),
-                rgba(0, 0, 0, 0.75) calc(50% - 1px),
-                rgba(0, 0, 0, 0.75) calc(50% + 1px),
+                #bbb calc(50% - 1px),
+                #bbb calc(50% + 1px),
                 transparent calc(50% + 1px)
             );
             transform: translateX(-50%);
-            transition: transform 140ms ease, height 140ms ease, top 140ms ease;
+            transition: transform 200ms ease, height 200ms ease, top 200ms ease;
             cursor: pointer;
         }
 
@@ -331,6 +337,13 @@
             transform: translateX(-50%) scaleX(1.8);
             height: 22px;
             top: 13px;
+            background: linear-gradient(
+                to right,
+                transparent calc(50% - 1px),
+                #000 calc(50% - 1px),
+                #000 calc(50% + 1px),
+                transparent calc(50% + 1px)
+            );
         }
 
         #timelineIndicator {
@@ -677,9 +690,11 @@
 
                     const currentZoom = map.getZoom();
                     if (currentZoom <= 5) {
+                        titleEl.style.opacity = '';
                         titleEl.classList.add('visible');
                     } else {
                         titleEl.classList.remove('visible');
+                        titleEl.style.opacity = '0';
                     }
                 }
 
@@ -875,6 +890,12 @@
                     // Close overlay while flying
                     overlay.classList.remove('visible');
                     overlay.setAttribute('aria-hidden', 'true');
+                    // Hide mapTitle instantly (no fade)
+                    const mapTitle = document.getElementById('mapTitle');
+                    if (mapTitle) {
+                        mapTitle.classList.remove('visible');
+                        mapTitle.style.opacity = '0';
+                    }
 
                     const imageSrc = lh.photoImage ? `${PHOTO_IMAGE_FOLDER}/${lh.photoImage}` : (lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "");
                     if (!imageSrc) return;

@@ -795,6 +795,7 @@
                 let lightIsOn = true;
                 const TITLE_USA_CENTER = [-98, 39];
                 const TITLE_ACTIONS_OFFSET_PX = 14;
+                const TITLE_TIMELINE_CLEARANCE_PX = 10;
 
                 function formatConveyedValue(value) {
                     if (value === "publicSale") return "Public Sale";
@@ -990,24 +991,48 @@
 
                 function updateMapTitlePosition() {
                     const titleEl = document.getElementById('mapTitle');
+                    const actionsEl = document.getElementById('titleActions');
+                    const timelineEl = document.getElementById('timeline');
                     if (!titleEl) return;
 
                     const projected = map.project(TITLE_USA_CENTER);
                     if (!projected) return;
 
+                    const timelineTop = timelineEl
+                        ? timelineEl.getBoundingClientRect().top
+                        : window.innerHeight;
+                    const titleRect = titleEl.getBoundingClientRect();
+                    const actionsRect = actionsEl ? actionsEl.getBoundingClientRect() : { height: 0 };
+
+                    const minCenterY = (titleRect.height / 2) + 8;
+                    const maxCenterY = timelineTop
+                        - TITLE_TIMELINE_CLEARANCE_PX
+                        - actionsRect.height
+                        - TITLE_ACTIONS_OFFSET_PX
+                        - (titleRect.height / 2);
+
+                    const clampedY = Math.max(minCenterY, Math.min(projected.y, maxCenterY));
+
                     titleEl.style.left = `${projected.x}px`;
-                    titleEl.style.top = `${projected.y}px`;
+                    titleEl.style.top = `${clampedY}px`;
                     updateTitleActionsPosition();
                 }
 
                 function updateTitleActionsPosition() {
                     const titleEl = document.getElementById('mapTitle');
                     const actionsEl = document.getElementById('titleActions');
+                    const timelineEl = document.getElementById('timeline');
                     if (!titleEl || !actionsEl) return;
 
                     const titleRect = titleEl.getBoundingClientRect();
+                    const timelineTop = timelineEl
+                        ? timelineEl.getBoundingClientRect().top
+                        : window.innerHeight;
+                    const actionsRect = actionsEl.getBoundingClientRect();
                     const centerX = titleRect.left + (titleRect.width / 2);
-                    const topY = titleRect.bottom + TITLE_ACTIONS_OFFSET_PX;
+                    const preferredTopY = titleRect.bottom + TITLE_ACTIONS_OFFSET_PX;
+                    const maxTopY = timelineTop - TITLE_TIMELINE_CLEARANCE_PX - actionsRect.height;
+                    const topY = Math.min(preferredTopY, maxTopY);
 
                     actionsEl.style.left = `${centerX}px`;
                     actionsEl.style.top = `${topY}px`;

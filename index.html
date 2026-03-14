@@ -55,12 +55,13 @@
 
         #overlayStage {
             position: fixed;
-            top: 0;
-            bottom: 112px;
+            top: calc((100vh - 112px) / 2);
+            bottom: auto;
             left: auto;
-            right: 10px;
-            transform: none;
-            width: min(700px, calc(100vw - 140px));
+            right: clamp(20px, 3vw, 44px);
+            transform: translateY(-50%);
+            width: min(1200px, calc(50vw - 24px), calc(100vw - 120px));
+            max-height: calc(100vh - 112px - 16px);
             height: auto;
             box-sizing: border-box;
             background: transparent;
@@ -69,16 +70,18 @@
             align-items: center;
             justify-content: center;
             gap: 0;
-            padding: 28px 0 24px 0;
+            padding: 24px 24px 8px 8px;
             overflow-y: auto;
             pointer-events: none;
         }
 
         #overlayCard {
             position: relative;
-            width: fit-content;
+            width: max-content;
             max-width: 100%;
             max-height: 100%;
+            height: auto;
+            padding: 0 7.5px 8px 7.5px;
             background: #fff;
             border: 2px solid #000;
             box-sizing: border-box;
@@ -88,9 +91,9 @@
 
         #overlayImage {
             position: static;
-            width: 92%;
+            width: auto;
             max-width: 100%;
-            max-height: 56%;
+            max-height: clamp(180px, 42vh, 520px);
             object-fit: contain;
             object-position: center center;
             transform: none;
@@ -105,15 +108,15 @@
             position: relative;
             color: #000;
             background: transparent;
-            padding: 14px;
+            padding: 12px 14px 6px 14px;
             border-radius: 0;
             font-size: 14px;
             line-height: 1.4;
             text-align: left;
-            width: 100%;
+            width: max-content;
             max-width: 100%;
-            max-height: 44%;
-            overflow: auto;
+            max-height: none;
+            overflow: visible;
             z-index: 40;
             box-shadow: none;
             margin-top: 0;
@@ -148,12 +151,18 @@
         #textBox .info-columns {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
+            gap: 0;
+            align-items: start;
         }
 
         #textBox .info-section {
-            border: 1px solid rgba(0, 0, 0, 0.18);
-            padding: 10px 10px 8px 10px;
+            padding: 10px 10px 2px 10px;
+        }
+
+        #textBox .info-section + .info-section {
+            border-left: 1px solid rgba(0, 0, 0, 0.22);
+            padding-left: 14px;
+            margin-left: 10px;
         }
 
         #textBox .info-section-title {
@@ -165,18 +174,32 @@
         }
 
         #textBox .info-item {
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-size: 13px;
             line-height: 1.35;
         }
 
+        #textBox .info-item:last-child {
+            margin-bottom: 0;
+        }
+
         @media (max-width: 780px) {
             #overlayStage {
-                width: calc(100vw - 20px);
+                right: 20px;
+                width: calc(100vw - 40px);
             }
 
             #textBox .info-columns {
                 grid-template-columns: 1fr;
+            }
+
+            #textBox .info-section + .info-section {
+                border-left: 0;
+                border-top: 1px solid rgba(0, 0, 0, 0.22);
+                padding-left: 10px;
+                padding-top: 12px;
+                margin-left: 0;
+                margin-top: 8px;
             }
         }
 
@@ -508,9 +531,11 @@
             border: 2px solid #000;
             padding: 3px 9px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 400;
             font-family: 'DIN Pro', Arial, sans-serif;
-            white-space: nowrap;
+            white-space: pre-line;
+            line-height: 1.25;
+            text-align: center;
             letter-spacing: 0.04em;
             pointer-events: none;
         }
@@ -845,9 +870,32 @@
                     }
                 }
 
+                function getCurrentActiveMarkerSize() {
+                    const z = map.getZoom();
+                    const t = Math.max(0, Math.min(1, (z - MARKER_MIN_ZOOM) / (MARKER_MAX_ZOOM - MARKER_MIN_ZOOM)));
+                    return Math.round(MARKER_MIN_SIZE + (MARKER_MAX_SIZE - MARKER_MIN_SIZE) * t);
+                }
+
+                function updateZoomLabelOffset() {
+                    if (!zoomLabelMarker) return;
+                    const markerSize = getCurrentActiveMarkerSize();
+                    zoomLabelMarker.setOffset([0, Math.round(markerSize / 2) + 10]);
+                }
+
                 function showZoomLabel(lh) {
-                    if (!lh.zoomLevel || !zoomLabelMarker) return;
-                    zoomLabelEl.textContent = lh.zoomLevel;
+                    if (!zoomLabelMarker) return;
+                    const zoomText = lh.zoomLevel ? `Zoom: ${lh.zoomLevel}` : "";
+                    const locationText = (lh.county && lh.state)
+                        ? `${lh.county}, ${lh.state}`
+                        : (lh.county ? `${lh.county}` : (lh.state ? `${lh.state}` : ""));
+                    const latLonText = (Number.isFinite(lh.lat) && Number.isFinite(lh.lon))
+                        ? `Lat: ${lh.lat.toFixed(4)} | Lon: ${lh.lon.toFixed(4)}`
+                        : "";
+                    const labelLines = [zoomText, locationText, latLonText].filter(Boolean);
+                    if (!labelLines.length) return;
+
+                    zoomLabelEl.textContent = labelLines.join('\n');
+                    updateZoomLabelOffset();
                     zoomLabelMarker.setLngLat([lh.lon, lh.lat]);
                     zoomLabelEl.style.display = 'block';
                 }
@@ -873,9 +921,7 @@
                 function updateActiveMarkerScale() {
                     if (!activeMarkerFrame || currentLighthouseIndex < 0) return;
 
-                    const z = map.getZoom();
-                    const t = Math.max(0, Math.min(1, (z - MARKER_MIN_ZOOM) / (MARKER_MAX_ZOOM - MARKER_MIN_ZOOM)));
-                    const size = Math.round(MARKER_MIN_SIZE + (MARKER_MAX_SIZE - MARKER_MIN_SIZE) * t);
+                    const size = getCurrentActiveMarkerSize();
                     const scale = size / MARKER_MIN_SIZE;
                     activeMarkerFrame.style.transform = `scale(${scale})`;
                 }
@@ -1114,8 +1160,6 @@
                             <div class="info-section">
                                 <div class="info-section-title">General information</div>
                                 <div class="info-item"><strong>${lh.name.toUpperCase()}</strong> (${lh.inception})</div>
-                                <div class="info-item">${lh.state} — ${lh.county}</div>
-                                <div class="info-item">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
                                 <div class="info-item">Conveyed to: <strong>${formatConveyedValue(lh.conveyed)}</strong></div>
                                 ${lh.proceeds ? `<div class="info-item">Proceeds: <strong>${lh.proceeds}</strong></div>` : ""}
                                 <div class="info-item">Year of transfer: ${lh.yearOfTransfer}</div>
@@ -1364,16 +1408,19 @@
                     zoomLabelEl.style.display = 'none';
                     zoomLabelMarker = new mapboxgl.Marker({
                         element: zoomLabelEl,
-                        offset: [0, 36]
+                        anchor: 'top',
+                        offset: [0, Math.round(MARKER_MIN_SIZE / 2) + 8]
                     })
                         .setLngLat([0, 0])
                         .addTo(map);
+                    updateZoomLabelOffset();
 
                     let zoomRaf = null;
                     map.on('zoom', () => {
                         if (zoomRaf) return;
                         zoomRaf = requestAnimationFrame(() => {
                             updateActiveMarkerScale();
+                            updateZoomLabelOffset();
                             updateMapTitleVisibility();
                             zoomRaf = null;
                         });

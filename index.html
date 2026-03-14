@@ -50,17 +50,17 @@
         #overlay.visible {
             display: block;
             opacity: 1;
-            pointer-events: auto;
+            pointer-events: none;
         }
 
         #overlayStage {
             position: fixed;
             top: 0;
             bottom: 112px;
-            left: 50%;
-            right: auto;
-            transform: translateX(-50%);
-            width: min(840px, calc(100vw - 48px));
+            left: auto;
+            right: 10px;
+            transform: none;
+            width: min(700px, calc(100vw - 140px));
             height: auto;
             box-sizing: border-box;
             background: transparent;
@@ -69,25 +69,33 @@
             align-items: center;
             justify-content: center;
             gap: 0;
-            padding: 12px 0 24px 0;
+            padding: 28px 0 24px 0;
             overflow-y: auto;
+            pointer-events: none;
         }
 
         #overlayCard {
-            width: 100%;
+            position: relative;
+            width: fit-content;
+            max-width: 100%;
+            max-height: 100%;
             background: #fff;
+            border: 2px solid #000;
             box-sizing: border-box;
+            overflow: visible;
+            pointer-events: auto;
         }
 
         #overlayImage {
             position: static;
-            width: 100%;
+            width: 92%;
             max-width: 100%;
             max-height: 56%;
             object-fit: contain;
             object-position: center center;
             transform: none;
             display: block;
+            margin: 18px auto 0 auto;
             border: none;
             background: transparent;
             box-sizing: border-box;
@@ -97,7 +105,7 @@
             position: relative;
             color: #000;
             background: transparent;
-            padding: 56px 14px 14px 14px;
+            padding: 14px;
             border-radius: 0;
             font-size: 14px;
             line-height: 1.4;
@@ -112,10 +120,9 @@
         }
 
         #textBox .light-circle {
-            position: absolute;
-            top: 14px;
-            left: 50%;
-            transform: translate(-50%, 0);
+            position: relative;
+            display: block;
+            margin: 10px auto 0 auto;
             width: 32px;
             height: 32px;
             border-radius: 50%;
@@ -126,13 +133,11 @@
         }
 
         #textBox .light-circle.on {
-
-            transform: translate(-50%, 0) scale(1.25);
+            transform: scale(1.25);
         }
 
         #textBox .light-circle.off {
-
-            transform: translate(-50%, 0) scale(1);
+            transform: scale(1);
             background: #000;
         }
 
@@ -225,9 +230,9 @@
         }
 
         #closeOverlay {
-            position: fixed;
-            top: 12px;
-            right: 12px;
+            position: absolute;
+            top: -18px;
+            right: -18px;
             left: auto;
             border: 2px solid #000;
             width: 36px;
@@ -509,6 +514,7 @@
     <div id="overlay" aria-hidden="true">
         <div id="overlayStage">
             <div id="overlayCard">
+                <button id="closeOverlay" type="button" aria-label="Close">×</button>
                 <img id="overlayImage" alt="Lighthouse image">
                 <div id="textBox">
                 <div id="geoInfo">
@@ -530,7 +536,6 @@
             </div>
             </div>
         </div>
-        <button id="closeOverlay" type="button" aria-label="Close">×</button>
     </div>
     <div id="timeline" aria-hidden="true">
         <div id="timelineTitle">Timline of the conveyd lighthouses</div>
@@ -1074,14 +1079,7 @@
                     
                     // Update overlay content with two info sections
                     textBox.innerHTML = `
-                        <div class="light-circle" aria-hidden="true"></div>
                         <div class="info-columns">
-                            <div class="info-section">
-                                <div class="info-section-title">Characteristics</div>
-                                <div class="info-item">Height: ${lh.height}</div>
-                                <div class="info-item">Focal height: ${lh.focalHeight}</div>
-                                <div class="info-item">Light characteristic: ${lh.lightCharacteristic}</div>
-                            </div>
                             <div class="info-section">
                                 <div class="info-section-title">General information</div>
                                 <div class="info-item"><strong>${lh.name.toUpperCase()}</strong> (${lh.inception})</div>
@@ -1090,6 +1088,13 @@
                                 <div class="info-item">Conveyed to: <strong>${formatConveyedValue(lh.conveyed)}</strong></div>
                                 <div class="info-item">Year of transfer: ${lh.yearOfTransfer}</div>
                                 ${lh.conveyed === "publicSale" && lh.proceeds ? `<div class="info-item">Proceeds: ${lh.proceeds}</div>` : ""}
+                            </div>
+                            <div class="info-section">
+                                <div class="info-section-title">Characteristics</div>
+                                <div class="info-item">Height: ${lh.height}</div>
+                                <div class="info-item">Focal height: ${lh.focalHeight}</div>
+                                <div class="info-item">Light characteristic: ${lh.lightCharacteristic}</div>
+                                <div class="light-circle" aria-hidden="true"></div>
                             </div>
                         </div>
                     `;

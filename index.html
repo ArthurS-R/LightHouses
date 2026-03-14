@@ -628,6 +628,10 @@
             maxBounds: [[-180, 8], [-16, 70]] // Symmetric around [-98, 39] to keep USA centered on wide screens
         });
 
+        // Keep map orientation fixed (no z-axis rotation by mouse/touch).
+        map.dragRotate.disable();
+        map.touchZoomRotate.disableRotation();
+
         let lastZoomLevel = 4;
 
         function parseCSVLine(line) {

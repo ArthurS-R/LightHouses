@@ -73,6 +73,12 @@
             overflow-y: auto;
         }
 
+        #overlayCard {
+            width: 100%;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
         #overlayImage {
             position: static;
             width: 100%;
@@ -90,7 +96,7 @@
         #textBox {
             position: relative;
             color: #000;
-            background: #fff;
+            background: transparent;
             padding: 56px 14px 14px 14px;
             border-radius: 0;
             font-size: 14px;
@@ -502,25 +508,27 @@
     </div>
     <div id="overlay" aria-hidden="true">
         <div id="overlayStage">
-            <img id="overlayImage" alt="Lighthouse image">
-            <div id="textBox">
-            <div id="geoInfo">
-                <div class="line1"></div>
-                <div class="line2"></div>
+            <div id="overlayCard">
+                <img id="overlayImage" alt="Lighthouse image">
+                <div id="textBox">
+                <div id="geoInfo">
+                    <div class="line1"></div>
+                    <div class="line2"></div>
+                </div>
+                <div id="towerInfo">
+                    <div class="line1"></div>
+                    <div class="line2"></div>
+                    <div class="line3"></div>
+                    <div class="line4"></div>
+                    <div class="line5"></div>
+                </div>
+                <div id="sellingInfo">
+                    <div class="line1"></div>
+                    <div class="line2"></div>
+                    <div class="line3"></div>
+                </div>
             </div>
-            <div id="towerInfo">
-                <div class="line1"></div>
-                <div class="line2"></div>
-                <div class="line3"></div>
-                <div class="line4"></div>
-                <div class="line5"></div>
             </div>
-            <div id="sellingInfo">
-                <div class="line1"></div>
-                <div class="line2"></div>
-                <div class="line3"></div>
-            </div>
-        </div>
         </div>
         <button id="closeOverlay" type="button" aria-label="Close">×</button>
     </div>

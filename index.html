@@ -13,15 +13,15 @@
 
         #mapTitle {
             position: fixed;
-            top: 36%;
-            left: 30%;
+            top: 46%;
+            left: 50%;
             transform: translateX(-50%) translateY(-50%);
             z-index: 45;
             color: #000;
-            font-size: 72px;
+            font-size: 80px;
             font-family: 'DIN Pro', Arial, sans-serif;
             font-weight: 900;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             text-shadow: none;
             opacity: 0;
@@ -31,7 +31,7 @@
 
         #mapTitle.visible {
             opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            transform: translateX(-50%) translateY(-50%);
         }
 
         #overlay {
@@ -56,25 +56,31 @@
         #overlayStage {
             position: fixed;
             top: 0;
-            right: 0;
-            left: auto;
-            width: 50vw;
-            height: 100%;
+            bottom: 112px;
+            left: 50%;
+            right: auto;
+            transform: translateX(-50%);
+            width: min(840px, calc(100vw - 48px));
+            height: auto;
             box-sizing: border-box;
             background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 12px 0 24px 0;
+            overflow-y: auto;
         }
 
         #overlayImage {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            right: 24px;
-            width: auto;
-            max-width: calc(100% - 24px);
-            max-height: calc(100% - 24px);
+            position: static;
+            width: 100%;
+            max-width: 100%;
+            max-height: 56%;
             object-fit: contain;
             object-position: center center;
-            transform: translate(-50%, -50%);
+            transform: none;
             display: block;
             border: none;
             background: transparent;
@@ -82,28 +88,28 @@
         }
 
         #textBox {
-            position: fixed;
-            left: 12px;
-            bottom: 70px;
+            position: relative;
             color: #000;
             background: #fff;
-            padding: 24px 14px 14px 14px;
+            padding: 56px 14px 14px 14px;
             border-radius: 0;
             font-size: 14px;
             line-height: 1.4;
             text-align: left;
-            max-width: 42vw;
-            max-height: calc(100vh - 70px - 8px);
-            overflow: visible;
+            width: 100%;
+            max-width: 100%;
+            max-height: 44%;
+            overflow: auto;
             z-index: 40;
             box-shadow: none;
+            margin-top: 0;
         }
 
         #textBox .light-circle {
             position: absolute;
-            top: -26px;
+            top: 14px;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, 0);
             width: 32px;
             height: 32px;
             border-radius: 50%;
@@ -114,18 +120,53 @@
         }
 
         #textBox .light-circle.on {
-    
-            transform: translate(-50%, -50%) scale(1.25);
+
+            transform: translate(-50%, 0) scale(1.25);
         }
 
         #textBox .light-circle.off {
-        
-            transform: translate(-50%, -50%) scale(1);
+
+            transform: translate(-50%, 0) scale(1);
             background: #000;
         }
 
         #textBox > div {
-            margin-bottom: 10px;
+            margin-bottom: 0;
+        }
+
+        #textBox .info-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        #textBox .info-section {
+            border: 1px solid rgba(0, 0, 0, 0.18);
+            padding: 10px 10px 8px 10px;
+        }
+
+        #textBox .info-section-title {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        #textBox .info-item {
+            margin-bottom: 5px;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        @media (max-width: 780px) {
+            #overlayStage {
+                width: calc(100vw - 20px);
+            }
+
+            #textBox .info-columns {
+                grid-template-columns: 1fr;
+            }
         }
 
         .detail-divider {
@@ -208,51 +249,95 @@
 
         #closeOverlay:hover {
             transform: scale(1.2);
-            background: rgba(0, 0, 0, 0.85);
+            background: #000;
             color: #fff;
             animation: closeOverlayCross 0.2s ease forwards;
         }
 
         #closeOverlay:active {
             transform: scale(1.1);
-            background: rgba(0, 0, 0, 0.95);
+            background: #000;
             color: #fff;
             animation: none;
         }
 
-        #tableLinkBtn {
-            position: static;
-            z-index: 36;
-            background: #000;
-            color: #fff;
+        #titleActions {
+            position: fixed;
+            top: 54%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 45;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 200ms ease;
+        }
+
+        #tableLinkBtn,
+        #firstStopBtn {
+            background: hsl(200, 1%, 70%);
+            color: #000;
             text-decoration: none;
-            border-radius: 4px;
-            padding: 6px 10px;
-            font-size: 12px;
-            line-height: 1;
+            border: 2px solid #000;
+            border-radius: 50%;
+            width: 64px;
+            height: 64px;
+            padding: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.1;
             display: inline-flex;
             align-items: center;
-            white-space: nowrap;
-            margin-right: 24px;
+            justify-content: center;
+            text-align: center;
+            white-space: normal;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 200ms ease, background 200ms ease;
+        }
+
+        #mapTitle.visible + #titleActions {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         #pauseBtn {
             position: static;
             z-index: 36;
-            background: #222;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 10px;
-            font-size: 12px;
-            line-height: 1;
+            background: #fff;
+            color: #000;
+            border: 2px solid #000;
+            border-radius: 50%;
+            width: 64px;
+            height: 64px;
+            padding: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: normal;
             cursor: pointer;
             margin-right: 8px;
+            box-sizing: border-box;
+            transition: transform 200ms ease, background 200ms ease;
         }
 
         #pauseBtn:hover,
-        #tableLinkBtn:hover {
-            background: #333;
+        #tableLinkBtn:hover,
+        #firstStopBtn:hover {
+            background: #000;
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        #pauseBtn.is-active {
+            background: #000;
+            color: #fff;
         }
 
         .timeline-buttons {
@@ -271,20 +356,41 @@
             pointer-events: auto;
             color: #000;
             background: #fff;
+            border: 2px solid #000;
             padding: 8px 18px 10px 18px;
             border-radius: 0;
-            display: flex;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+            column-gap: 12px;
+            row-gap: 6px;
             align-items: center;
-            gap: 8px;
-            min-height: 48px;
-            max-height: 60px;
+        }
+
+        #timelineTitle {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #000;
+            pointer-events: none;
+        }
+
+        .timeline-buttons {
+            grid-column: 1;
+            grid-row: 2;
         }
 
         #timelineTrack {
+            grid-column: 2;
+            grid-row: 2;
             position: relative;
             height: 60px;
             cursor: pointer;
             flex: 1;
+            min-width: 0;
         }
 
         #timelineLine {
@@ -312,8 +418,12 @@
             font-size: 13px;
             color: #000;
             font-weight: 600;
-                    color: #000 !important;
-                    font-weight: 700;
+        }
+
+        .timelineTickLabel.current-year {
+            font-size: 13px;
+            color: #000;
+            font-weight: 700;
         }
 
         .timelineTick {
@@ -337,6 +447,19 @@
             transform: translateX(-50%) scaleX(1.8);
             height: 22px;
             top: 13px;
+            background: linear-gradient(
+                to right,
+                transparent calc(50% - 1px),
+                #000 calc(50% - 1px),
+                #000 calc(50% + 1px),
+                transparent calc(50% + 1px)
+            );
+        }
+
+        .timelineTick.current-year {
+            transform: translateX(-50%) scaleX(1.5);
+            height: 20px;
+            top: 14px;
             background: linear-gradient(
                 to right,
                 transparent calc(50% - 1px),
@@ -373,12 +496,14 @@
 <body>
     <div id="map"></div>
     <div id="mapTitle" aria-hidden="true">Pharophiles</div>
+    <div id="titleActions">
+        <a id="tableLinkBtn" href="table/index.html">Open Table</a>
+        <button id="firstStopBtn" type="button">First Stop</button>
+    </div>
     <div id="overlay" aria-hidden="true">
         <div id="overlayStage">
             <img id="overlayImage" alt="Lighthouse image">
-        </div>
-        <button id="closeOverlay" type="button" aria-label="Close">×</button>
-        <div id="textBox">
+            <div id="textBox">
             <div id="geoInfo">
                 <div class="line1"></div>
                 <div class="line2"></div>
@@ -396,11 +521,13 @@
                 <div class="line3"></div>
             </div>
         </div>
+        </div>
+        <button id="closeOverlay" type="button" aria-label="Close">×</button>
     </div>
     <div id="timeline" aria-hidden="true">
+        <div id="timelineTitle">Timline of the conveyd lighthouses</div>
         <div class="timeline-buttons">
             <button id="pauseBtn" type="button">Pause</button>
-            <a id="tableLinkBtn" href="table/index.html">Open Table</a>
         </div>
         <div id="timelineTrack">
             <div id="timelineLine"></div>
@@ -555,6 +682,7 @@
                 const sellingInfo = document.getElementById('sellingInfo');
                 const closeOverlayBtn = document.getElementById('closeOverlay');
                 const tableLinkBtn = document.getElementById('tableLinkBtn');
+                const firstStopBtn = document.getElementById('firstStopBtn');
                 const timelineTicks = document.getElementById('timelineTicks');
                 const timelineIndicator = document.getElementById('timelineIndicator');
                 const timelineYear = document.getElementById('timelineYear');
@@ -775,6 +903,7 @@
 
                         const label = document.createElement('div');
                         label.className = 'timelineTickLabel';
+                        label.dataset.year = String(year);
                         label.textContent = String(year);
                         label.style.left = `${percent}%`;
 
@@ -873,6 +1002,23 @@
                     timelineIndicator.style.display = 'block';
                 }
 
+                function updateCurrentTimelineTick(indexValue) {
+                    const allTicks = timelineTicks.querySelectorAll('.timelineTick.current-year');
+                    allTicks.forEach((tick) => tick.classList.remove('current-year'));
+                    const allLabels = timelineTicks.querySelectorAll('.timelineTickLabel.current-year');
+                    allLabels.forEach((label) => label.classList.remove('current-year'));
+
+                    const currentTick = timelineTicks.querySelector(`.timelineTick[data-index="${indexValue}"]`);
+                    if (currentTick) {
+                        currentTick.classList.add('current-year');
+                        const currentYear = currentTick.dataset.year;
+                        const currentLabel = timelineTicks.querySelector(`.timelineTickLabel[data-year="${currentYear}"]`);
+                        if (currentLabel) {
+                            currentLabel.classList.add('current-year');
+                        }
+                    }
+                }
+
                 function showLighthouse(index) {
                     if (index < 0 || index >= lighthousesData.length) return;
                     
@@ -881,6 +1027,7 @@
                     updateActiveMarker(lh);
                     updateActiveMarkerScale();
                     updateTimelineIndicator(index);
+                    updateCurrentTimelineTick(index);
                     
                     // Clear any existing overlay close timer
                     if (overlayCloseTimer) {
@@ -904,8 +1051,8 @@
                     const satFallbackSrc = lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "";
                     overlayImage.onerror = null;
                     overlayImage.src = imageSrc;
-                    overlayImage.style.minHeight = IMG_MIN_HEIGHT;
-                    overlayImage.style.maxHeight = IMG_MAX_HEIGHT;
+                    overlayImage.style.minHeight = '';
+                    overlayImage.style.maxHeight = '';
                     overlayImage.onerror = () => {
                         overlayImage.onerror = null;
                         if (satFallbackSrc && satFallbackSrc !== imageSrc) {
@@ -917,20 +1064,26 @@
                         }
                     };
                     
-                    // Update overlay content in hierarchical white box
+                    // Update overlay content with two info sections
                     textBox.innerHTML = `
                         <div class="light-circle" aria-hidden="true"></div>
-                        <div class="line1">${lh.name.toUpperCase()} (${lh.inception})</div>
-                        <div class="line3">${lh.state} — ${lh.county}</div>
-                        <div class="line4">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
-                        <div class="line2">Conveyed to: <strong>${formatConveyedValue(lh.conveyed)}</strong></div>
-                        <div class="line2">Year of transfer: ${lh.yearOfTransfer}</div>
-                        ${lh.conveyed === "publicSale" && lh.proceeds ? `<div class="line2">Proceeds: ${lh.proceeds}</div>` : ""}
-                        <hr class="detail-divider" />
-                        <div class="line1">Characteristics</div>
-                        <div class="line2">Height: ${lh.height}</div>
-                        <div class="line2">Focal height: ${lh.focalHeight}</div>
-                        <div class="line2">Light characteristic: ${lh.lightCharacteristic}</div>
+                        <div class="info-columns">
+                            <div class="info-section">
+                                <div class="info-section-title">Characteristics</div>
+                                <div class="info-item">Height: ${lh.height}</div>
+                                <div class="info-item">Focal height: ${lh.focalHeight}</div>
+                                <div class="info-item">Light characteristic: ${lh.lightCharacteristic}</div>
+                            </div>
+                            <div class="info-section">
+                                <div class="info-section-title">General information</div>
+                                <div class="info-item"><strong>${lh.name.toUpperCase()}</strong> (${lh.inception})</div>
+                                <div class="info-item">${lh.state} — ${lh.county}</div>
+                                <div class="info-item">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
+                                <div class="info-item">Conveyed to: <strong>${formatConveyedValue(lh.conveyed)}</strong></div>
+                                <div class="info-item">Year of transfer: ${lh.yearOfTransfer}</div>
+                                ${lh.conveyed === "publicSale" && lh.proceeds ? `<div class="info-item">Proceeds: ${lh.proceeds}</div>` : ""}
+                            </div>
+                        </div>
                     `;
                     
                     // Keep geo/tower/selling containers available for compatibility (empty)
@@ -1003,6 +1156,7 @@
                     resetMarkerScales();
                     if (activeMarkerImg) activeMarkerImg.style.display = 'none';
                     timelineIndicator.style.display = 'none';
+                    updateCurrentTimelineTick(-1);
                     isSlideshowPaused = false;
                     updatePauseButtonLabel();
 
@@ -1019,6 +1173,7 @@
                 function updatePauseButtonLabel() {
                     if (!pauseBtn) return;
                     pauseBtn.textContent = isSlideshowPaused ? 'Resume' : 'Pause';
+                    pauseBtn.classList.toggle('is-active', isSlideshowPaused);
                 }
 
                 if (pauseBtn) {
@@ -1038,6 +1193,23 @@
                             }, AUTO_ADVANCE_DELAY);
                         }
                         updatePauseButtonLabel();
+                    });
+                }
+
+                if (firstStopBtn) {
+                    firstStopBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (!lighthousesData.length) return;
+
+                        let firstIndex = 0;
+                        if (timelineMinYear !== null) {
+                            const mapped = yearToFirstIndex.get(timelineMinYear);
+                            if (typeof mapped === 'number') {
+                                firstIndex = mapped;
+                            }
+                        }
+
+                        showLighthouse(firstIndex);
                     });
                 }
 

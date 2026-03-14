@@ -356,9 +356,13 @@
             text-align: center;
             white-space: normal;
             cursor: pointer;
-            margin-right: 8px;
+            margin-right: 0;
             box-sizing: border-box;
-            transition: transform 200ms ease, background 200ms ease;
+            opacity: 0;
+            transform: scale(0.2);
+            pointer-events: none;
+            transform-origin: center center;
+            transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease-out, background 220ms ease;
         }
 
         #pauseBtn:hover,
@@ -377,8 +381,11 @@
         .timeline-buttons {
             display: flex;
             align-items: center;
+            justify-content: center;
             z-index: 36;
             gap: 8px;
+            width: 72px;
+            overflow: visible;
         }
 
         #timeline {
@@ -394,11 +401,27 @@
             padding: 8px 18px 10px 18px;
             border-radius: 0;
             display: grid;
-            grid-template-columns: auto 1fr;
+            grid-template-columns: 0 1fr;
             grid-template-rows: auto auto;
             column-gap: 12px;
             row-gap: 6px;
             align-items: center;
+            transition: grid-template-columns 340ms cubic-bezier(0.22, 1, 0.36, 1) 120ms;
+        }
+
+        #timeline.is-slideshow-active {
+            grid-template-columns: 72px 1fr;
+            transition-delay: 0ms;
+        }
+
+        #timeline.is-slideshow-active .timeline-buttons {
+            width: 72px;
+        }
+
+        #timeline.is-slideshow-active #pauseBtn {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
         }
 
         #timelineTitle {
@@ -1181,6 +1204,7 @@
                     if (index < 0 || index >= lighthousesData.length) return;
                     
                     currentLighthouseIndex = index;
+                    updatePauseButtonVisibility();
                     const lh = lighthousesData[index];
                     updateActiveMarker(lh);
                     updateActiveMarkerScale();
@@ -1313,6 +1337,7 @@
                     }
                     
                     currentLighthouseIndex = -1;
+                    updatePauseButtonVisibility();
                     resetMarkerScales();
                     if (activeMarkerImg) activeMarkerImg.style.display = 'none';
                     timelineIndicator.style.display = 'none';
@@ -1330,6 +1355,12 @@
                 }
 
                 const pauseBtn = document.getElementById('pauseBtn');
+                const timelineEl = document.getElementById('timeline');
+                function updatePauseButtonVisibility() {
+                    if (!timelineEl) return;
+                    timelineEl.classList.toggle('is-slideshow-active', currentLighthouseIndex >= 0);
+                }
+
                 function updatePauseButtonLabel() {
                     if (!pauseBtn) return;
                     pauseBtn.textContent = isSlideshowPaused ? 'Resume' : 'Pause';
@@ -1374,6 +1405,7 @@
                 }
 
                 updatePauseButtonLabel();
+                updatePauseButtonVisibility();
 
                 closeOverlayBtn.addEventListener('click', closeOverlay);
                 document.addEventListener('keydown', (e) => {

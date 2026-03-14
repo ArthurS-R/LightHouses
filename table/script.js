@@ -1,5 +1,5 @@
 // ========== CONFIGURATION ==========
-const CSV_FILE = 'UsLighthouses_Web.csv';
+const CSV_FILE = 'UsLighthouses_Dataset_Web.csv';
 const IMAGE_COLUMNS = ['satImageFN', 'imageFN'];
 const IMAGE_FOLDERS = {
     satImageFN: 'images_sat',

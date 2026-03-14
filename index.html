@@ -779,6 +779,7 @@
 
                     if (lightTimer) {
                         clearTimeout(lightTimer);
+                        clearInterval(lightTimer);
                         lightTimer = null;
                     }
 
@@ -797,71 +798,101 @@
                         lightIsOn = false;
                     };
 
-                    if (normalized === 'f') {
+                    const schedule = (seconds, fn) => {
+                        lightTimer = setTimeout(fn, Math.max(0, seconds) * 1000);
+                    };
+
+                    // Normalize common notation forms: Fl W 5s, Fl(2) W 6s, Iso W 6s, Oc W 4s, F W
+                    const cleaned = normalized.replace(/,+\s*.*$/, '').trim();
+
+                    const fixedMatch = cleaned.match(/^f(?:\s+[wrgb])?$/i);
+                    if (fixedMatch) {
                         setOn();
                         return;
                     }
 
-                    const flMatch = normalized.match(/^fl\s*(?:\((\d+)\))?\s*(\d+\.?\d*)s?$/i);
+                    const flMatch = cleaned.match(/^(?:fl|f?fl|fi)(?:\((\d+)\))?(?:\s+[wrgb])?\s+(\d+\.?\d*)s?$/i);
                     if (flMatch) {
                         const count = Math.max(1, parseInt(flMatch[1] || '1', 10));
                         const period = Math.max(1, parseFloat(flMatch[2] || '5'));
-                        const flashDuration = Math.max(0.15, Math.min(0.8, period * 0.12));
-                        const cycleOnTime = Math.min(period * 0.9, count * flashDuration);
-                        const pauseDuration = Math.max(0.2, period - cycleOnTime);
+                        const flashOn = 0.2;
+                        const interFlashOff = 0.25;
 
-                        const flashCycle = () => {
-                            let i = 0;
-                            const nextFlash = () => {
-                                if (i >= count) {
+                        const runCycle = () => {
+                            let flashesDone = 0;
+
+                            const doFlash = () => {
+                                if (flashesDone >= count) {
+                                    const used = (count * flashOn) + (Math.max(0, count - 1) * interFlashOff);
+                                    const pause = Math.max(0.2, period - used);
                                     setOff();
-                                    lightTimer = setTimeout(flashCycle, pauseDuration * 1000);
+                                    schedule(pause, runCycle);
                                     return;
                                 }
+
                                 setOn();
-                                setTimeout(() => {
+                                schedule(flashOn, () => {
                                     setOff();
-                                    i += 1;
-                                    setTimeout(nextFlash, 0.1 * 1000);
-                                }, flashDuration * 1000);
+                                    flashesDone += 1;
+                                    if (flashesDone < count) {
+                                        schedule(interFlashOff, doFlash);
+                                    } else {
+                                        doFlash();
+                                    }
+                                });
                             };
-                            nextFlash();
+
+                            doFlash();
                         };
 
                         setOff();
-                        flashCycle();
+                        runCycle();
                         return;
                     }
 
-                    const isoMatch = normalized.match(/^iso\s*(\d+\.?\d*)s?$/i);
+                    const isoMatch = cleaned.match(/^iso(?:\s+[wrgb])?\s+(\d+\.?\d*)s?$/i);
                     if (isoMatch) {
                         const period = Math.max(1, parseFloat(isoMatch[1] || '6'));
-                        const half = period / 2;
-                        setOn();
-                        lightTimer = setInterval(() => {
-                            lightIsOn ? setOff() : setOn();
-                        }, half * 1000);
+                        const onDuration = period / 2;
+                        const offDuration = period / 2;
+
+                        const runIso = () => {
+                            setOn();
+                            schedule(onDuration, () => {
+                                setOff();
+                                schedule(offDuration, runIso);
+                            });
+                        };
+
+                        runIso();
                         return;
                     }
 
-                    const ocMatch = normalized.match(/^oc\s*(\d+\.?\d*)s?$/i);
+                    const ocMatch = cleaned.match(/^oc(?:\s+[wrgb])?\s+(\d+\.?\d*)s?$/i);
                     if (ocMatch) {
                         const period = Math.max(1, parseFloat(ocMatch[1] || '4'));
-                        const offDuration = Math.max(0.2, period * 0.2);
-                        const onDuration = period - offDuration;
-                        setOn();
-                        lightTimer = setInterval(() => {
-                            setOff();
-                            setTimeout(setOn, offDuration * 1000);
-                        }, period * 1000);
+                        const onDuration = period * 0.75;
+                        const offDuration = period * 0.25;
+
+                        const runOcculting = () => {
+                            setOn();
+                            schedule(onDuration, () => {
+                                setOff();
+                                schedule(offDuration, runOcculting);
+                            });
+                        };
+
+                        runOcculting();
                         return;
                     }
 
-                    // fallback: slow pulse
+                    // fallback: slow pulse when pattern is unknown
                     setOff();
-                    lightTimer = setInterval(() => {
+                    const pulse = () => {
                         lightIsOn ? setOff() : setOn();
-                    }, 1500);
+                        schedule(1.5, pulse);
+                    };
+                    schedule(1.5, pulse);
                 }
 
                 function resetMarkerScales() {

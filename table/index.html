@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="container">
-        <a href="../index.html" class="back-link">← Back to Homepage</a>
+        <a href="../index.html" class="back-link">&#8592;</a>
         <h1>CSV Data Table Viewer</h1>        
         <div id="error-container"></div>
         
@@ -34,11 +34,13 @@
 
         <div id="loading" class="loading">Loading data...</div>
         
+        <div class="table-header-row">
+            <div id="stats" class="stats"></div>
+        </div>
+
         <div id="tableWrapper" class="table-wrapper" style="display: none;">
             <div id="dataTable"></div>
         </div>
-
-        <div class="stats" id="stats"></div>
     </div>
 
     <div class="image-modal" id="imageModal">

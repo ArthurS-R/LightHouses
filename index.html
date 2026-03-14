@@ -502,6 +502,18 @@
             display: none !important;
             white-space: nowrap;
         }
+
+        .zoom-label {
+            background: #fff;
+            border: 2px solid #000;
+            padding: 3px 9px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'DIN Pro', Arial, sans-serif;
+            white-space: nowrap;
+            letter-spacing: 0.04em;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -623,6 +635,7 @@
                 const conveyedIdx = findHeaderIndex(headers, "Conveyd Lightstaition");
                 const yearOfTransferIdx = findHeaderIndex(headers, "yearOfTransfer");
                 const proceedsIdx = findHeaderIndex(headers, "proceeds");
+                const zoomLevelIdx = findHeaderIndex(headers, "Zoomlevel");
 
                 if (latIdx === -1 || lonIdx === -1) {
                     console.error("Latitude or Longitude columns not found");
@@ -654,6 +667,7 @@
                         const conveyed = conveyedIdx !== -1 ? (columns[conveyedIdx] || "").trim() : "";
                         const yearOfTransfer = yearOfTransferIdx !== -1 ? (columns[yearOfTransferIdx] || "").trim() : "";
                         const proceeds = proceedsIdx !== -1 ? (columns[proceedsIdx] || "").trim() : "";
+                        const zoomLevel = zoomLevelIdx !== -1 ? (columns[zoomLevelIdx] || "").trim() : "";
 
                         lighthousesData.push({
                             name,
@@ -670,7 +684,8 @@
                             lightCharacteristic,
                             conveyed,
                             yearOfTransfer,
-                            proceeds
+                            proceeds,
+                            zoomLevel
                         });
 
                         features.push({
@@ -704,11 +719,16 @@
                 let currentLighthouseIndex = -1;
                 let overlayCloseTimer = null;
                 let activeMarker = null;
+                let activeMarkerEl = null;
+                let activeMarkerFrame = null;
                 let activeMarkerImg = null;
+                let zoomLabelMarker = null;
+                let zoomLabelEl = null;
                 let isSlideshowPaused = false;
                 const AUTO_ADVANCE_DELAY = 10000; // 10 seconds overlay display
                 const MARKER_MIN_SIZE = 40;
                 const MARKER_MAX_SIZE = 220;
+                const MARKER_CROP_PX = 7;
                 const MARKER_MIN_ZOOM = 4;
                 const MARKER_MAX_ZOOM = 12;
                 let timelineMinYear = null;
@@ -820,9 +840,20 @@
                 }
 
                 function resetMarkerScales() {
-                    if (activeMarkerImg) {
-                        activeMarkerImg.style.transform = 'scale(1)';
+                    if (activeMarkerFrame) {
+                        activeMarkerFrame.style.transform = 'scale(1)';
                     }
+                }
+
+                function showZoomLabel(lh) {
+                    if (!lh.zoomLevel || !zoomLabelMarker) return;
+                    zoomLabelEl.textContent = lh.zoomLevel;
+                    zoomLabelMarker.setLngLat([lh.lon, lh.lat]);
+                    zoomLabelEl.style.display = 'block';
+                }
+
+                function hideZoomLabel() {
+                    if (zoomLabelEl) zoomLabelEl.style.display = 'none';
                 }
 
                 function updateMapTitleVisibility() {
@@ -840,13 +871,13 @@
                 }
 
                 function updateActiveMarkerScale() {
-                    if (!activeMarkerImg || currentLighthouseIndex < 0) return;
+                    if (!activeMarkerFrame || currentLighthouseIndex < 0) return;
 
                     const z = map.getZoom();
                     const t = Math.max(0, Math.min(1, (z - MARKER_MIN_ZOOM) / (MARKER_MAX_ZOOM - MARKER_MIN_ZOOM)));
                     const size = Math.round(MARKER_MIN_SIZE + (MARKER_MAX_SIZE - MARKER_MIN_SIZE) * t);
                     const scale = size / MARKER_MIN_SIZE;
-                    activeMarkerImg.style.transform = `scale(${scale})`;
+                    activeMarkerFrame.style.transform = `scale(${scale})`;
                 }
 
                 function updateActiveMarker(lh) {
@@ -1086,8 +1117,8 @@
                                 <div class="info-item">${lh.state} — ${lh.county}</div>
                                 <div class="info-item">Lat: ${lh.lat} | Lon: ${lh.lon}</div>
                                 <div class="info-item">Conveyed to: <strong>${formatConveyedValue(lh.conveyed)}</strong></div>
+                                ${lh.proceeds ? `<div class="info-item">Proceeds: <strong>${lh.proceeds}</strong></div>` : ""}
                                 <div class="info-item">Year of transfer: ${lh.yearOfTransfer}</div>
-                                ${lh.conveyed === "publicSale" && lh.proceeds ? `<div class="info-item">Proceeds: ${lh.proceeds}</div>` : ""}
                             </div>
                             <div class="info-section">
                                 <div class="info-section-title">Characteristics</div>
@@ -1106,10 +1137,10 @@
 
                     setLightCharacteristic(lh.lightCharacteristic);
 
-                    // Off-center anchor: keep destination lighthouse in upper-left area
+                    // Off-center anchor: keep destination lighthouse in the middle of the left side
                     const flyOffset = [
-                        Math.round(window.innerWidth * -0.40),
-                        Math.round(window.innerHeight * -0.32)
+                        Math.round(window.innerWidth * -0.25),
+                        Math.round(window.innerHeight * -0.08)
                     ];
                     
                     // Fly to lighthouse
@@ -1126,6 +1157,7 @@
                         overlay.classList.add('visible');
                         overlay.setAttribute('aria-hidden', 'false');
                         updateActiveMarkerScale();
+                        showZoomLabel(lh);
                         
                         // Position overlay image in center of right-side overlay stage
                         overlayImage.style.top = '50%';
@@ -1159,6 +1191,7 @@
                 function closeOverlay() {
                     overlay.classList.remove('visible');
                     overlay.setAttribute('aria-hidden', 'true');
+                    hideZoomLabel();
 
                     if (overlayCloseTimer) {
                         clearTimeout(overlayCloseTimer);
@@ -1245,16 +1278,25 @@
                         const markerEl = document.createElement('div');
                         markerEl.style.cursor = 'pointer';
 
+                        const markerFrame = document.createElement('div');
+                        markerFrame.style.width = `${MARKER_MIN_SIZE}px`;
+                        markerFrame.style.height = `${MARKER_MIN_SIZE}px`;
+                        markerFrame.style.overflow = 'hidden';
+                        markerFrame.style.transition = 'transform 200ms ease';
+                        markerFrame.style.transformOrigin = 'center center';
+                        markerFrame.style.willChange = 'transform';
+
                         const markerImg = document.createElement('img');
                         markerImg.alt = lh.name;
                         markerImg.className = 'lighthouse-marker';
-                        markerImg.style.width = '40px';
-                        markerImg.style.height = '40px';
+                        markerImg.style.width = `${MARKER_MIN_SIZE + (MARKER_CROP_PX * 2)}px`;
+                        markerImg.style.height = `${MARKER_MIN_SIZE + (MARKER_CROP_PX * 2)}px`;
+                        markerImg.style.marginLeft = `-${MARKER_CROP_PX}px`;
+                        markerImg.style.marginTop = `-${MARKER_CROP_PX}px`;
                         markerImg.style.objectFit = 'cover';
                         markerImg.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
-                        markerImg.style.transition = 'transform 200ms ease';
-                        markerImg.style.transformOrigin = 'center center';
-                        markerEl.appendChild(markerImg);
+                        markerFrame.appendChild(markerImg);
+                        markerEl.appendChild(markerFrame);
                         
                         const imageSrc = lh.satImage ? `${SAT_IMAGE_FOLDER}/${lh.satImage}` : "";
                         if (imageSrc) {
@@ -1278,34 +1320,55 @@
                         
                         // Add hover effect
                         markerEl.addEventListener('mouseenter', () => {
-                            markerImg.style.transform = 'scale(1.2)';
+                            markerFrame.style.transform = 'scale(1.2)';
                         });
                         markerEl.addEventListener('mouseleave', () => {
-                            markerImg.style.transform = 'scale(1)';
+                            markerFrame.style.transform = 'scale(1)';
                         });
                     });
 
                     // Create one reusable active image marker (performance)
-                    const activeEl = document.createElement('div');
-                    activeEl.style.pointerEvents = 'none';
+                    activeMarkerEl = document.createElement('div');
+                    activeMarkerEl.style.pointerEvents = 'none';
+
+                    activeMarkerFrame = document.createElement('div');
+                    activeMarkerFrame.style.width = `${MARKER_MIN_SIZE}px`;
+                    activeMarkerFrame.style.height = `${MARKER_MIN_SIZE}px`;
+                    activeMarkerFrame.style.overflow = 'hidden';
+                    activeMarkerFrame.style.transition = 'transform 200ms ease';
+                    activeMarkerFrame.style.transformOrigin = 'center center';
+                    activeMarkerFrame.style.willChange = 'transform';
 
                     activeMarkerImg = document.createElement('img');
                     activeMarkerImg.alt = 'Active lighthouse marker';
-                    activeMarkerImg.style.width = `${MARKER_MIN_SIZE}px`;
-                    activeMarkerImg.style.height = `${MARKER_MIN_SIZE}px`;
+                    activeMarkerImg.style.width = `${MARKER_MIN_SIZE + (MARKER_CROP_PX * 2)}px`;
+                    activeMarkerImg.style.height = `${MARKER_MIN_SIZE + (MARKER_CROP_PX * 2)}px`;
+                    activeMarkerImg.style.marginLeft = `-${MARKER_CROP_PX}px`;
+                    activeMarkerImg.style.marginTop = `-${MARKER_CROP_PX}px`;
                     activeMarkerImg.style.objectFit = 'cover';
                     activeMarkerImg.style.display = 'none';
-                    activeMarkerImg.style.transformOrigin = 'center center';
-                    activeMarkerImg.style.willChange = 'transform';
-                    activeEl.appendChild(activeMarkerImg);
+                    activeMarkerFrame.appendChild(activeMarkerImg);
+                    activeMarkerEl.appendChild(activeMarkerFrame);
 
                     activeMarker = new mapboxgl.Marker({
-                        element: activeEl
+                        element: activeMarkerEl
                     })
                         .setLngLat([0, 0])
                         .addTo(map);
 
                     resetMarkerScales();
+
+                    // Create zoom label marker (positioned below the active marker)
+                    zoomLabelEl = document.createElement('div');
+                    zoomLabelEl.className = 'zoom-label';
+                    zoomLabelEl.style.display = 'none';
+                    zoomLabelMarker = new mapboxgl.Marker({
+                        element: zoomLabelEl,
+                        offset: [0, 36]
+                    })
+                        .setLngLat([0, 0])
+                        .addTo(map);
+
                     let zoomRaf = null;
                     map.on('zoom', () => {
                         if (zoomRaf) return;

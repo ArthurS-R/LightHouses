@@ -1,5 +1,4 @@
-satImageFN,imageFN,Name,ID,State,County,Latitude,Longitude,Date of inception,Height (m),Focalheight (m),Range (nm),Light characteristic,heritageDesignation,Conveyd Lightstaition,yearOfTransfer,"
-proceeds",Zoomlevel
+satImageFN,imageFN,Name,ID,State,County,Latitude,Longitude,Date of inception,Height (m),Focalheight (m),Range (nm),Light characteristic,heritageDesignation,Conveyd Lightstaition,yearOfTransfer,proceeds,Zoomlevel
 Q1687043.png,Q1687043.jpg,Rondout Light,Q1687043,New York,Kingston,41.920833333,-73.9625,1838,15,16,9,Fl W 6s,http://www.wikidata.org/entity/Q19558910,LocalGov,2002,,~ 117m
 Q5398653.png,Q5398653.jpg,Esopus Meadows Light,Q5398653,New York,Ulster County,41.868389,-73.941611,1839,17,18,6,Fl W 2.5s,http://www.wikidata.org/entity/Q19558910,ngo,2002,,~ 117m
 Q6651703.png,Q6651703.jpg,Little River Light,Q6651703,Maine,Washington County,44.650885,-67.19209556,1846,12,17,13,Fl W 6s,http://www.wikidata.org/entity/Q19558910,ngo,2002,,~ 117m

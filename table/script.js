@@ -18,6 +18,7 @@ async function init() {
         setupEventListeners();
         document.getElementById('loading').style.display = 'none';
         document.getElementById('tableWrapper').style.display = 'block';
+        document.getElementById('tableTimeline').style.display = 'block';
     } catch (error) {
         showError('Failed to load data: ' + error.message);
     }
@@ -130,6 +131,46 @@ function setupTable() {
     });
 
     updateStats();
+    setupTimelineControl();
+}
+
+function setupTimelineControl() {
+    const tableWrapper = document.getElementById('tableWrapper');
+    const timeline = document.getElementById('tableTimeline');
+    const timelineInput = document.getElementById('tableTimelineInput');
+
+    // Wait for Tabulator to render, then sync widths
+    setTimeout(() => {
+        const holder = tableWrapper.querySelector('.tabulator-tableholder');
+        if (!holder) return;
+
+        // Hide internal horizontal scrollbar and drive movement with timeline
+        holder.style.overflowX = 'hidden';
+
+        const syncBounds = () => {
+            const maxScroll = Math.max(0, holder.scrollWidth - holder.clientWidth);
+            timelineInput.max = String(maxScroll);
+            timelineInput.value = String(Math.min(maxScroll, holder.scrollLeft));
+            timeline.style.width = tableWrapper.clientWidth + 'px';
+        };
+        syncBounds();
+        const resizeObserver = new ResizeObserver(syncBounds);
+        resizeObserver.observe(holder);
+        resizeObserver.observe(tableWrapper);
+
+        tableWrapper.style.display = 'block';
+        timeline.style.display = 'block';
+
+        // Sync timeline -> table scroll
+        timelineInput.addEventListener('input', () => {
+            holder.scrollLeft = Number(timelineInput.value);
+        });
+
+        // Sync table scroll -> timeline
+        holder.addEventListener('scroll', () => {
+            timelineInput.value = String(holder.scrollLeft);
+        });
+    }, 300);
 }
 
 // ========== EVENT LISTENERS ==========

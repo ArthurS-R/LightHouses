@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="container">
-        <a href="../index.html" class="back-link">&#8592;</a>
+        <a href="../index.html" class="back-link"><span class="back-link-arrow">&#8592;</span></a>
         <h1>CSV Data Table Viewer</h1>        
         <div id="error-container"></div>
         
@@ -40,6 +40,9 @@
 
         <div id="tableWrapper" class="table-wrapper" style="display: none;">
             <div id="dataTable"></div>
+        </div>
+        <div id="tableTimeline" class="table-timeline" style="display: none;">
+            <input id="tableTimelineInput" type="range" min="0" max="0" value="0" aria-label="Table horizontal timeline">
         </div>
     </div>
 

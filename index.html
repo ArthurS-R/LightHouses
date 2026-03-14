@@ -13,12 +13,12 @@
 
         #mapTitle {
             position: fixed;
-            top: 46%;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%) translateY(-50%);
+            transform: translate(-50%, -50%);
             z-index: 45;
             color: #000;
-            font-size: 80px;
+            font-size: clamp(36px, 7vw, 80px);
             font-family: 'DIN Pro', Arial, sans-serif;
             font-weight: 900;
             letter-spacing: 0.08em;
@@ -31,7 +31,7 @@
 
         #mapTitle.visible {
             opacity: 1;
-            transform: translateX(-50%) translateY(-50%);
+            transform: translate(-50%, -50%);
         }
 
         #overlay {
@@ -297,8 +297,8 @@
 
         #titleActions {
             position: fixed;
-            top: 54%;
-            left: 50%;
+            top: 0;
+            left: 0;
             transform: translateX(-50%);
             z-index: 45;
             display: flex;
@@ -340,7 +340,7 @@
         #pauseBtn {
             position: static;
             z-index: 36;
-            background: #fff;
+            background: hsl(200, 1%, 70%);
             color: #000;
             border: 2px solid #000;
             border-radius: 50%;
@@ -602,7 +602,7 @@
             style: 'mapbox://styles/tarahundertpfund/cmmncmexo004y01s36kz0ai55',
             center: [-98, 39],
             zoom: 4,
-            maxBounds: [[-185, 15], [-60, 75]] // Bounding box with padding around markers
+            maxBounds: [[-180, 8], [-16, 70]] // Symmetric around [-98, 39] to keep USA centered on wide screens
         });
 
         let lastZoomLevel = 4;
@@ -766,6 +766,8 @@
                 let currentLightCharacteristic = 'F';
                 let lightTimer = null;
                 let lightIsOn = true;
+                const TITLE_USA_CENTER = [-98, 39];
+                const TITLE_ACTIONS_OFFSET_PX = 14;
 
                 function formatConveyedValue(value) {
                     if (value === "publicSale") return "Public Sale";
@@ -939,6 +941,16 @@
                     const titleEl = document.getElementById('mapTitle');
                     if (!titleEl) return;
 
+                    updateMapTitlePosition();
+
+                    // Never show the main title while a lighthouse flow is active
+                    // (open popup or transitioning to the next lighthouse).
+                    if (currentLighthouseIndex >= 0) {
+                        titleEl.classList.remove('visible');
+                        titleEl.style.opacity = '0';
+                        return;
+                    }
+
                     const currentZoom = map.getZoom();
                     if (currentZoom <= 5) {
                         titleEl.style.opacity = '';
@@ -947,6 +959,31 @@
                         titleEl.classList.remove('visible');
                         titleEl.style.opacity = '0';
                     }
+                }
+
+                function updateMapTitlePosition() {
+                    const titleEl = document.getElementById('mapTitle');
+                    if (!titleEl) return;
+
+                    const projected = map.project(TITLE_USA_CENTER);
+                    if (!projected) return;
+
+                    titleEl.style.left = `${projected.x}px`;
+                    titleEl.style.top = `${projected.y}px`;
+                    updateTitleActionsPosition();
+                }
+
+                function updateTitleActionsPosition() {
+                    const titleEl = document.getElementById('mapTitle');
+                    const actionsEl = document.getElementById('titleActions');
+                    if (!titleEl || !actionsEl) return;
+
+                    const titleRect = titleEl.getBoundingClientRect();
+                    const centerX = titleRect.left + (titleRect.width / 2);
+                    const topY = titleRect.bottom + TITLE_ACTIONS_OFFSET_PX;
+
+                    actionsEl.style.left = `${centerX}px`;
+                    actionsEl.style.top = `${topY}px`;
                 }
 
                 function updateActiveMarkerScale() {
@@ -1158,6 +1195,7 @@
                     // Close overlay while flying
                     overlay.classList.remove('visible');
                     overlay.setAttribute('aria-hidden', 'true');
+                    hideZoomLabel();
                     // Hide mapTitle instantly (no fade)
                     const mapTitle = document.getElementById('mapTitle');
                     if (mapTitle) {
@@ -1247,6 +1285,7 @@
                             overlayCloseTimer = setTimeout(() => {
                                 overlay.classList.remove('visible');
                                 overlay.setAttribute('aria-hidden', 'true');
+                                hideZoomLabel();
                                 const nextIndex = (currentLighthouseIndex + 1) % lighthousesData.length;
                                 showLighthouse(nextIndex);
                             }, AUTO_ADVANCE_DELAY);
@@ -1345,7 +1384,14 @@
                 });
 
                 map.on('load', () => {
+                    map.jumpTo({
+                        center: TITLE_USA_CENTER,
+                        zoom: 4
+                    });
+
                     buildTimeline();
+                    updateMapTitlePosition();
+                    updateTitleActionsPosition();
                     updateMapTitleVisibility();
 
                     // Create image markers for each lighthouse
@@ -1452,10 +1498,15 @@
                         zoomRaf = requestAnimationFrame(() => {
                             updateActiveMarkerScale();
                             updateZoomLabelOffset();
+                            updateMapTitlePosition();
+                            updateTitleActionsPosition();
                             updateMapTitleVisibility();
                             zoomRaf = null;
                         });
                     });
+
+                    map.on('move', updateMapTitlePosition);
+                    map.on('resize', updateMapTitlePosition);
 
                     map.on('zoomend', () => {
                         const currentZoom = map.getZoom();

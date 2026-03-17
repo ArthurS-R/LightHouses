@@ -18,10 +18,10 @@
             transform: translate(-50%, -50%);
             z-index: 45;
             color: #000;
-            font-size: clamp(36px, 7vw, 80px);
+            font-size: clamp(30px, 7vw, 80px);
             font-family: 'DIN Pro', Arial, sans-serif;
             font-weight: 900;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.02em;
             text-transform: uppercase;
             text-shadow: none;
             opacity: 0;
@@ -32,6 +32,61 @@
         #mapTitle.visible {
             opacity: 1;
             transform: translate(-50%, -50%);
+        }
+
+        #mapSubtitle {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: none;
+            z-index: 45;
+            color: #000;
+            font-size: clamp(10px, 2vw, 20px);
+            font-family: 'DIN Pro', Arial, sans-serif;
+            font-weight: 400;
+            line-height: 1.15;
+            letter-spacing: 0.04em;
+            text-align: left;
+            text-shadow: none;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 200ms ease;
+            max-width: 80vw;
+        }
+
+        #mapTitle.visible + #mapSubtitle {
+            opacity: 1;
+        }
+
+        #mapIntro {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 45;
+            color: #000;
+            font-size: clamp(10px, 1.15vw, 14px);
+            font-family: 'DIN Pro', Arial, sans-serif;
+            font-weight: 400;
+            line-height: 1.28;
+            text-align: justify;
+            text-justify: inter-word;
+            text-shadow: none;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 200ms ease;
+            max-width: 82vw;
+        }
+
+        #mapIntro p {
+            margin: 0 0 10px 0;
+        }
+
+        #mapIntro p:last-child {
+            margin-bottom: 0;
+        }
+
+        #mapTitle.visible ~ #mapIntro {
+            opacity: 1;
         }
 
         #overlay {
@@ -297,9 +352,9 @@
 
         #titleActions {
             position: fixed;
-            top: 0;
-            left: 0;
-            transform: translateX(-50%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 50px);
             z-index: 45;
             display: flex;
             align-items: center;
@@ -332,7 +387,7 @@
             transition: transform 200ms ease, background 200ms ease;
         }
 
-        #mapTitle.visible + #titleActions {
+        #mapTitle.visible ~ #titleActions {
             opacity: 1;
             pointer-events: auto;
         }
@@ -567,6 +622,12 @@
 <body>
     <div id="map"></div>
     <div id="mapTitle" aria-hidden="true">Pharophiles</div>
+    <div id="mapSubtitle" aria-hidden="true">Documenting the Dispersal of the US Lighthouse Network</div>
+    <div id="mapIntro" aria-hidden="true">
+        <p>For much of American history, lighthouses formed the backbone of federal maritime navigation infrastructure. But as automated technologies rendered them operationally obsolete, their cultural value quietly grew, and with it, the first pharophile communities: enthusiasts and historians devoted to the history, architecture and symbolism of the lighthouse.</p>
+        <p>The National Historic Lighthouse Preservation Act of 2000 mobilized these communities and allowed historic light stations to be transferred to ngo's or sold to civilian custodians. The architecture became civilian heritage, while the signal remained under federal control. In doing so, the state outsourced the maintenance of its own maritime infrastructure to the pharophiles.</p>
+        <p>Pharophiles is an archive of the 133 American lighthouses conveyed under the NHLPA.</p>
+    </div>
     <div id="titleActions">
         <a id="tableLinkBtn" href="table/index.html">Open Table</a>
         <button id="firstStopBtn" type="button">First Stop</button>
@@ -616,6 +677,7 @@
         const PHOTO_IMAGE_FOLDER = 'table/images';
         const IMG_MIN_HEIGHT = '700px'; // Adjust min height of overlay images
         const IMG_MAX_HEIGHT = '900px'; // Adjust max height of overlay images
+        const OVERVIEW_ZOOM = 4.2;
         let lighthousesData = [];
 
         mapboxgl.accessToken = 'pk.eyJ1IjoidGFyYWh1bmRlcnRwZnVuZCIsImEiOiJjbW1ka2k5ODQwM3k0MnFyNjAwbmJvZGFiIn0.Zjbar3-1_LyPYzw4o5O6jQ';
@@ -624,7 +686,7 @@
             container: 'map',
             style: 'mapbox://styles/tarahundertpfund/cmmncmexo004y01s36kz0ai55',
             center: [-98, 39],
-            zoom: 4,
+            zoom: OVERVIEW_ZOOM,
             maxBounds: [[-180, 8], [-16, 70]] // Symmetric around [-98, 39] to keep USA centered on wide screens
         });
 
@@ -632,7 +694,7 @@
         map.dragRotate.disable();
         map.touchZoomRotate.disableRotation();
 
-        let lastZoomLevel = 4;
+        let lastZoomLevel = OVERVIEW_ZOOM;
 
         function parseCSVLine(line) {
             const result = [];
@@ -777,7 +839,7 @@
                 let zoomLabelMarker = null;
                 let zoomLabelEl = null;
                 let isSlideshowPaused = false;
-                const AUTO_ADVANCE_DELAY = 10000; // 10 seconds overlay display
+                const AUTO_ADVANCE_DELAY = 20000; // 10 seconds overlay display
                 const MARKER_MIN_SIZE = 40;
                 const MARKER_MAX_SIZE = 220;
                 const MARKER_CROP_PX = 7;
@@ -794,8 +856,14 @@
                 let lightTimer = null;
                 let lightIsOn = true;
                 const TITLE_USA_CENTER = [-98, 39];
-                const TITLE_ACTIONS_OFFSET_PX = 14;
+                const TITLE_X_OFFSET_PX = 0;
+                const TITLE_Y_OFFSET_PX = -20;
+                const TITLE_SUBTITLE_GAP_PX = -6;
+                const SUBTITLE_INTRO_GAP_PX = 10;
+                const TITLE_ACTIONS_OFFSET_PX = -20;
                 const TITLE_TIMELINE_CLEARANCE_PX = 10;
+                const MAP_TIMELINE_PADDING_PX = 16;
+                const MAP_EXTRA_UPSHIFT_PX = 90;
 
                 function formatConveyedValue(value) {
                     if (value === "publicSale") return "Public Sale";
@@ -989,8 +1057,26 @@
                     }
                 }
 
+                function getMapBottomPadding() {
+                    const timelineEl = document.getElementById('timeline');
+                    if (!timelineEl) return MAP_TIMELINE_PADDING_PX + MAP_EXTRA_UPSHIFT_PX;
+                    const timelineRect = timelineEl.getBoundingClientRect();
+                    return Math.ceil(timelineRect.height + MAP_TIMELINE_PADDING_PX + MAP_EXTRA_UPSHIFT_PX);
+                }
+
+                function updateMapViewportPadding() {
+                    map.setPadding({
+                        top: 0,
+                        right: 0,
+                        bottom: getMapBottomPadding(),
+                        left: 0
+                    });
+                }
+
                 function updateMapTitlePosition() {
                     const titleEl = document.getElementById('mapTitle');
+                    const subtitleEl = document.getElementById('mapSubtitle');
+                    const introEl = document.getElementById('mapIntro');
                     const actionsEl = document.getElementById('titleActions');
                     const timelineEl = document.getElementById('timeline');
                     if (!titleEl) return;
@@ -1002,35 +1088,68 @@
                         ? timelineEl.getBoundingClientRect().top
                         : window.innerHeight;
                     const titleRect = titleEl.getBoundingClientRect();
+                    const subtitleRect = subtitleEl ? subtitleEl.getBoundingClientRect() : { height: 0 };
+                    const introRect = introEl ? introEl.getBoundingClientRect() : { height: 0 };
                     const actionsRect = actionsEl ? actionsEl.getBoundingClientRect() : { height: 0 };
+
+                    const stackedBelowTitleHeight = TITLE_SUBTITLE_GAP_PX
+                        + subtitleRect.height
+                        + SUBTITLE_INTRO_GAP_PX
+                        + introRect.height
+                        + TITLE_ACTIONS_OFFSET_PX
+                        + actionsRect.height;
 
                     const minCenterY = (titleRect.height / 2) + 8;
                     const maxCenterY = timelineTop
                         - TITLE_TIMELINE_CLEARANCE_PX
-                        - actionsRect.height
-                        - TITLE_ACTIONS_OFFSET_PX
+                        - stackedBelowTitleHeight
                         - (titleRect.height / 2);
 
-                    const clampedY = Math.max(minCenterY, Math.min(projected.y, maxCenterY));
+                    const preferredCenterX = projected.x + TITLE_X_OFFSET_PX;
+                    const preferredCenterY = projected.y + TITLE_Y_OFFSET_PX;
+                    const clampedY = Math.max(minCenterY, Math.min(preferredCenterY, maxCenterY));
 
-                    titleEl.style.left = `${projected.x}px`;
+                    titleEl.style.left = `${preferredCenterX}px`;
                     titleEl.style.top = `${clampedY}px`;
+
+                    const positionedTitleRect = titleEl.getBoundingClientRect();
+                    const maxStackWidth = Math.max(240, window.innerWidth - 32);
+                    const stackWidth = Math.min(positionedTitleRect.width, maxStackWidth);
+                    const stackLeft = (positionedTitleRect.left + (positionedTitleRect.width / 2)) - (stackWidth / 2);
+
+                    if (subtitleEl) {
+                        subtitleEl.style.width = `${stackWidth}px`;
+                        subtitleEl.style.left = `${stackLeft}px`;
+                        subtitleEl.style.top = `${positionedTitleRect.bottom + TITLE_SUBTITLE_GAP_PX}px`;
+                    }
+
+                    if (introEl) {
+                        const positionedSubtitleRect = subtitleEl
+                            ? subtitleEl.getBoundingClientRect()
+                            : titleEl.getBoundingClientRect();
+                        introEl.style.width = `${stackWidth}px`;
+                        introEl.style.left = `${stackLeft}px`;
+                        introEl.style.top = `${positionedSubtitleRect.bottom + SUBTITLE_INTRO_GAP_PX}px`;
+                    }
+
                     updateTitleActionsPosition();
                 }
 
                 function updateTitleActionsPosition() {
                     const titleEl = document.getElementById('mapTitle');
+                    const introEl = document.getElementById('mapIntro');
                     const actionsEl = document.getElementById('titleActions');
                     const timelineEl = document.getElementById('timeline');
                     if (!titleEl || !actionsEl) return;
 
                     const titleRect = titleEl.getBoundingClientRect();
+                    const introRect = introEl ? introEl.getBoundingClientRect() : titleRect;
                     const timelineTop = timelineEl
                         ? timelineEl.getBoundingClientRect().top
                         : window.innerHeight;
                     const actionsRect = actionsEl.getBoundingClientRect();
                     const centerX = titleRect.left + (titleRect.width / 2);
-                    const preferredTopY = titleRect.bottom + TITLE_ACTIONS_OFFSET_PX;
+                    const preferredTopY = introRect.bottom + TITLE_ACTIONS_OFFSET_PX;
                     const maxTopY = timelineTop - TITLE_TIMELINE_CLEARANCE_PX - actionsRect.height;
                     const topY = Math.min(preferredTopY, maxTopY);
 
@@ -1313,7 +1432,7 @@
                     map.flyTo({
                         center: [lh.lon, lh.lat],
                         zoom: 12,
-                        duration: 3000,
+                        duration: 6000,
                         offset: flyOffset,
                         essential: true
                     });
@@ -1376,8 +1495,14 @@
 
                     // Return map to full view state on close
                     map.flyTo({
-                        center: [-98, 39],
-                        zoom: 4,
+                        center: TITLE_USA_CENTER,
+                        zoom: OVERVIEW_ZOOM,
+                        padding: {
+                            top: 0,
+                            right: 0,
+                            bottom: getMapBottomPadding(),
+                            left: 0
+                        },
                         duration: 800,
                         essential: true
                     });
@@ -1445,9 +1570,17 @@
                 });
 
                 map.on('load', () => {
+                    updateMapViewportPadding();
+
                     map.jumpTo({
                         center: TITLE_USA_CENTER,
-                        zoom: 4
+                        zoom: OVERVIEW_ZOOM,
+                        padding: {
+                            top: 0,
+                            right: 0,
+                            bottom: getMapBottomPadding(),
+                            left: 0
+                        }
                     });
 
                     buildTimeline();
@@ -1567,7 +1700,10 @@
                     });
 
                     map.on('move', updateMapTitlePosition);
-                    map.on('resize', updateMapTitlePosition);
+                    map.on('resize', () => {
+                        updateMapViewportPadding();
+                        updateMapTitlePosition();
+                    });
 
                     map.on('zoomend', () => {
                         const currentZoom = map.getZoom();

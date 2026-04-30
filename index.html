@@ -18,7 +18,7 @@
             transform: translate(-50%, -50%);
             z-index: 45;
             color: #000;
-            font-size: clamp(30px, 7vw, 80px);
+            font-size: clamp(24px, 5.8vw, 64px);
             font-family: 'DIN Pro', Arial, sans-serif;
             font-weight: 900;
             letter-spacing: 0.02em;
@@ -41,10 +41,10 @@
             transform: none;
             z-index: 45;
             color: #000;
-            font-size: clamp(10px, 2vw, 20px);
+            font-size: clamp(9px, 1.5vw, 16px);
             font-family: 'DIN Pro', Arial, sans-serif;
             font-weight: 400;
-            line-height: 1.15;
+            line-height: 1.1;
             letter-spacing: 0.04em;
             text-align: left;
             text-shadow: none;
@@ -64,10 +64,10 @@
             left: 0;
             z-index: 45;
             color: #000;
-            font-size: clamp(10px, 1.15vw, 14px);
+            font-size: clamp(9px, 0.95vw, 12px);
             font-family: 'DIN Pro', Arial, sans-serif;
             font-weight: 400;
-            line-height: 1.28;
+            line-height: 1.2;
             text-align: justify;
             text-justify: inter-word;
             text-shadow: none;
@@ -78,7 +78,7 @@
         }
 
         #mapIntro p {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
         }
 
         #mapIntro p:last-child {
@@ -855,13 +855,14 @@
                 let currentLightCharacteristic = 'F';
                 let lightTimer = null;
                 let lightIsOn = true;
+                let isMapZooming = false;
                 const TITLE_USA_CENTER = [-98, 39];
                 const TITLE_X_OFFSET_PX = 0;
-                const TITLE_Y_OFFSET_PX = -20;
+                const TITLE_Y_OFFSET_PX = 0;
                 const TITLE_SUBTITLE_GAP_PX = -6;
                 const SUBTITLE_INTRO_GAP_PX = 10;
                 const TITLE_ACTIONS_OFFSET_PX = -20;
-                const TITLE_TIMELINE_CLEARANCE_PX = 10;
+                const TITLE_TIMELINE_CLEARANCE_PX = 36;
                 const MAP_TIMELINE_PADDING_PX = 16;
                 const MAP_EXTRA_UPSHIFT_PX = 90;
 
@@ -1039,6 +1040,13 @@
 
                     updateMapTitlePosition();
 
+                    // Keep title/subtitle/intro/actions hidden while zooming.
+                    if (isMapZooming) {
+                        titleEl.classList.remove('visible');
+                        titleEl.style.opacity = '0';
+                        return;
+                    }
+
                     // Never show the main title while a lighthouse flow is active
                     // (open popup or transitioning to the next lighthouse).
                     if (currentLighthouseIndex >= 0) {
@@ -1081,22 +1089,31 @@
                     const timelineEl = document.getElementById('timeline');
                     if (!titleEl) return;
 
-                    const projected = map.project(TITLE_USA_CENTER);
-                    if (!projected) return;
-
                     const timelineTop = timelineEl
                         ? timelineEl.getBoundingClientRect().top
                         : window.innerHeight;
                     const titleRect = titleEl.getBoundingClientRect();
+                    // Pre-set widths so the height reads below reflect the
+                    // actual width the elements will be laid out at.
+                    const maxStackWidth = Math.max(240, window.innerWidth - 32);
+                    const preStackWidth = Math.min(titleRect.width, maxStackWidth);
+                    if (subtitleEl) subtitleEl.style.width = `${preStackWidth}px`;
+                    if (introEl) {
+                        introEl.style.maxHeight = '';
+                        introEl.style.overflow = '';
+                        introEl.style.width = `${preStackWidth}px`;
+                    }
                     const subtitleRect = subtitleEl ? subtitleEl.getBoundingClientRect() : { height: 0 };
                     const introRect = introEl ? introEl.getBoundingClientRect() : { height: 0 };
                     const actionsRect = actionsEl ? actionsEl.getBoundingClientRect() : { height: 0 };
+                    const actionsGapPx = Math.max(0, TITLE_ACTIONS_OFFSET_PX);
+                    const subtitleGapPx = Math.max(0, TITLE_SUBTITLE_GAP_PX);
 
-                    const stackedBelowTitleHeight = TITLE_SUBTITLE_GAP_PX
+                    const stackedBelowTitleHeight = subtitleGapPx
                         + subtitleRect.height
                         + SUBTITLE_INTRO_GAP_PX
                         + introRect.height
-                        + TITLE_ACTIONS_OFFSET_PX
+                        + actionsGapPx
                         + actionsRect.height;
 
                     const minCenterY = (titleRect.height / 2) + 8;
@@ -1105,34 +1122,56 @@
                         - stackedBelowTitleHeight
                         - (titleRect.height / 2);
 
-                    const preferredCenterX = projected.x + TITLE_X_OFFSET_PX;
-                    const preferredCenterY = projected.y + TITLE_Y_OFFSET_PX;
+                    const preferredCenterX = (window.innerWidth / 2) + TITLE_X_OFFSET_PX;
+                    const preferredCenterY = (window.innerHeight / 2) + TITLE_Y_OFFSET_PX;
                     const clampedY = Math.max(minCenterY, Math.min(preferredCenterY, maxCenterY));
 
-                    titleEl.style.left = `${preferredCenterX}px`;
-                    titleEl.style.top = `${clampedY}px`;
+                    const layoutStackAtCenterY = (centerY) => {
+                        titleEl.style.left = `${preferredCenterX}px`;
+                        titleEl.style.top = `${centerY}px`;
 
-                    const positionedTitleRect = titleEl.getBoundingClientRect();
-                    const maxStackWidth = Math.max(240, window.innerWidth - 32);
-                    const stackWidth = Math.min(positionedTitleRect.width, maxStackWidth);
-                    const stackLeft = (positionedTitleRect.left + (positionedTitleRect.width / 2)) - (stackWidth / 2);
+                        const positionedTitleRect = titleEl.getBoundingClientRect();
+                        const stackWidth = Math.min(positionedTitleRect.width, maxStackWidth);
+                        const stackLeft = (positionedTitleRect.left + (positionedTitleRect.width / 2)) - (stackWidth / 2);
 
-                    if (subtitleEl) {
-                        subtitleEl.style.width = `${stackWidth}px`;
-                        subtitleEl.style.left = `${stackLeft}px`;
-                        subtitleEl.style.top = `${positionedTitleRect.bottom + TITLE_SUBTITLE_GAP_PX}px`;
+                        if (subtitleEl) {
+                            subtitleEl.style.width = `${stackWidth}px`;
+                            subtitleEl.style.left = `${stackLeft}px`;
+                            subtitleEl.style.top = `${positionedTitleRect.bottom + TITLE_SUBTITLE_GAP_PX}px`;
+                        }
+
+                        if (introEl) {
+                            const positionedSubtitleRect = subtitleEl
+                                ? subtitleEl.getBoundingClientRect()
+                                : titleEl.getBoundingClientRect();
+                            introEl.style.width = `${stackWidth}px`;
+                            introEl.style.left = `${stackLeft}px`;
+                            introEl.style.top = `${positionedSubtitleRect.bottom + SUBTITLE_INTRO_GAP_PX}px`;
+                            const introTop = positionedSubtitleRect.bottom + SUBTITLE_INTRO_GAP_PX;
+                            const hardMaxBottom = timelineTop - TITLE_TIMELINE_CLEARANCE_PX;
+                            const maxIntroHeight = hardMaxBottom - introTop;
+                            if (maxIntroHeight < introEl.scrollHeight) {
+                                introEl.style.maxHeight = `${Math.max(0, maxIntroHeight)}px`;
+                                introEl.style.overflow = 'hidden';
+                            }
+                        }
+
+                        updateTitleActionsPosition();
+                    };
+
+                    layoutStackAtCenterY(clampedY);
+
+                    const hardMaxBottom = timelineTop - TITLE_TIMELINE_CLEARANCE_PX;
+                    const titleBottom = titleEl.getBoundingClientRect().bottom;
+                    const subtitleBottom = subtitleEl ? subtitleEl.getBoundingClientRect().bottom : titleBottom;
+                    const introBottom = introEl ? introEl.getBoundingClientRect().bottom : subtitleBottom;
+                    const actionsBottom = actionsEl ? actionsEl.getBoundingClientRect().bottom : introBottom;
+                    const stackBottom = Math.max(titleBottom, subtitleBottom, introBottom, actionsBottom);
+                    const overflowPx = stackBottom - hardMaxBottom;
+
+                    if (overflowPx > 0) {
+                        layoutStackAtCenterY(clampedY - overflowPx);
                     }
-
-                    if (introEl) {
-                        const positionedSubtitleRect = subtitleEl
-                            ? subtitleEl.getBoundingClientRect()
-                            : titleEl.getBoundingClientRect();
-                        introEl.style.width = `${stackWidth}px`;
-                        introEl.style.left = `${stackLeft}px`;
-                        introEl.style.top = `${positionedSubtitleRect.bottom + SUBTITLE_INTRO_GAP_PX}px`;
-                    }
-
-                    updateTitleActionsPosition();
                 }
 
                 function updateTitleActionsPosition() {
@@ -1687,6 +1726,11 @@
                     updateZoomLabelOffset();
 
                     let zoomRaf = null;
+                    map.on('zoomstart', () => {
+                        isMapZooming = true;
+                        updateMapTitleVisibility();
+                    });
+
                     map.on('zoom', () => {
                         if (zoomRaf) return;
                         zoomRaf = requestAnimationFrame(() => {
@@ -1699,13 +1743,13 @@
                         });
                     });
 
-                    map.on('move', updateMapTitlePosition);
                     map.on('resize', () => {
                         updateMapViewportPadding();
                         updateMapTitlePosition();
                     });
 
                     map.on('zoomend', () => {
+                        isMapZooming = false;
                         const currentZoom = map.getZoom();
                         if (overlay.classList.contains('visible') && currentZoom < lastZoomLevel) {
                             closeOverlay();
